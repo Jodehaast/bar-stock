@@ -1,0 +1,130 @@
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id           Int      @id @default(autoincrement())
+  email        String   @unique
+  passwordHash String
+  name         String
+  role         String   @default("VIEWER")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  managedBars       Bar[]
+  createdMovements  StockMovement[] @relation("CreatedBy")
+  approvedMovements StockMovement[] @relation("ApprovedBy")
+}
+
+model Event {
+  id        Int      @id @default(autoincrement())
+  name      String
+  date      DateTime
+  venue     String
+  status    String   @default("SETUP")
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  bars     Bar[]
+  products EventProduct[]
+}
+
+model Bar {
+  id                 Int      @id @default(autoincrement())
+  eventId            Int
+  name               String
+  location           String?
+  responsibleCompany String?
+  status             String   @default("OPEN")
+  managerId          Int?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  event             Event          @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  manager           User?          @relation(fields: [managerId], references: [id])
+  inventory         BarInventory[]
+  outboundMovements StockMovement[] @relation("FromBar")
+  inboundMovements  StockMovement[] @relation("ToBar")
+
+  @@unique([eventId, name])
+}
+
+model Product {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique
+  unit      String
+  category  String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  eventProducts EventProduct[]
+  inventory     BarInventory[]
+  movementLines MovementLine[]
+}
+
+model EventProduct {
+  id        Int     @id @default(autoincrement())
+  eventId   Int
+  productId Int
+  isActive  Boolean @default(true)
+
+  event   Event   @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id])
+
+  @@unique([eventId, productId])
+}
+
+model StockMovement {
+  id           Int      @id @default(autoincrement())
+  eventId      Int
+  type         String
+  status       String   @default("PENDING")
+  fromBarId    Int?
+  toBarId      Int?
+  createdById  Int
+  approvedById Int?
+  notes        String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  approvedAt   DateTime?
+  dispatchedAt DateTime?
+  deliveredAt  DateTime?
+
+  fromBar    Bar?  @relation("FromBar", fields: [fromBarId], references: [id])
+  toBar      Bar?  @relation("ToBar",   fields: [toBarId],   references: [id])
+  createdBy  User  @relation("CreatedBy",  fields: [createdById],  references: [id])
+  approvedBy User? @relation("ApprovedBy", fields: [approvedById], references: [id])
+
+  lines MovementLine[]
+}
+
+model MovementLine {
+  id                Int  @id @default(autoincrement())
+  movementId        Int
+  productId         Int
+  quantityRequested Int
+  quantityActual    Int?
+
+  movement StockMovement @relation(fields: [movementId], references: [id], onDelete: Cascade)
+  product  Product       @relation(fields: [productId],  references: [id])
+}
+
+model BarInventory {
+  id              Int      @id @default(autoincrement())
+  barId           Int
+  productId       Int
+  openingQuantity Int      @default(0)
+  currentQuantity Int      @default(0)
+  updatedAt       DateTime @updatedAt
+
+  bar     Bar     @relation(fields: [barId],     references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id])
+
+  @@unique([barId, productId])
+}
