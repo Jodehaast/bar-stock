@@ -2,7 +2,7 @@ import {
   Box, Button, Divider, Heading, HStack, Text, VStack, Select, Textarea,
   FormControl, FormLabel, useToast, Breadcrumb, BreadcrumbItem, BreadcrumbLink,
   NumberInput, NumberInputField, NumberInputStepper,
-  NumberIncrementStepper, NumberDecrementStepper, Badge,
+  NumberIncrementStepper, NumberDecrementStepper,
 } from '@chakra-ui/react'
 import { ChevronRightIcon } from '@chakra-ui/icons'
 import NextLink from 'next/link'
@@ -15,8 +15,8 @@ import { useState } from 'react'
 
 interface Bar { id: number; name: string; event: { id: number; name: string } }
 interface InventoryRow {
-  id: number; currentQuantity: number
-  product: { id: number; name: string; unit: string; category: string | null }
+  id: number; currentQuantity: number; currentTots: number
+  product: { id: number; name: string; unit: string; category: string | null; totsPerBottle: number | null }
 }
 interface OtherBar { id: number; name: string }
 
@@ -29,8 +29,8 @@ export default function CloseOutPage() {
   )
   const { data: allBars = [] } = useSWR<OtherBar[]>(eventId ? `/api/events/${eventId}/bars` : null)
 
-  // For each product: actual count + optional destination bar
   const [counts, setCounts] = useState<Record<number, number>>({})
+  const [tots, setTots] = useState<Record<number, number>>({})
   const [destinations, setDestinations] = useState<Record<string, string>>({})
   const [notes, setNotes] = useState('')
   const [loading, setLoading] = useState(false)
@@ -40,10 +40,11 @@ export default function CloseOutPage() {
 
   const submit = async () => {
     const lines = inventory
-      .filter((row) => (counts[row.product.id] ?? row.currentQuantity) > 0)
+      .filter((row) => (counts[row.product.id] ?? row.currentQuantity) > 0 || (row.product.totsPerBottle && (tots[row.product.id] ?? row.currentTots) > 0))
       .map((row) => ({
         productId: row.product.id,
         quantity: counts[row.product.id] ?? row.currentQuantity,
+        tots: row.product.totsPerBottle ? (tots[row.product.id] ?? row.currentTots) : undefined,
       }))
 
     if (lines.length === 0) {
@@ -51,9 +52,6 @@ export default function CloseOutPage() {
       return
     }
 
-    // Group by destination (one movement per destination)
-    // Simple approach: single close-out movement with null toBar (return to central)
-    // TODO: could split by destination — for now, one movement with selected destination
     const toBarId = destinations['all'] ? Number(destinations['all']) : null
 
     setLoading(true)
@@ -71,7 +69,6 @@ export default function CloseOutPage() {
     setLoading(false)
 
     if (res.ok) {
-      // Mark bar as closed
       await fetch(`/api/events/${eventId}/bars/${barId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
@@ -96,7 +93,7 @@ export default function CloseOutPage() {
 
   return (
     <AppShell title="Bar Close-Out">
-      <VStack align="stretch" spacing={6} maxW="560px">
+      <VStack align="stretch" spacing={6} maxW="600px">
         <Breadcrumb separator={<ChevronRightIcon color="gray.500" />} fontSize="sm" color="gray.400">
           <BreadcrumbItem><BreadcrumbLink as={NextLink} href="/events">Events</BreadcrumbLink></BreadcrumbItem>
           <BreadcrumbItem><BreadcrumbLink as={NextLink} href={`/events/${eventId}`}>{bar.event.name}</BreadcrumbLink></BreadcrumbItem>
@@ -104,7 +101,7 @@ export default function CloseOutPage() {
           <BreadcrumbItem isCurrentPage><BreadcrumbLink>Close Out</BreadcrumbLink></BreadcrumbItem>
         </Breadcrumb>
         <Heading size="md">Close Out — {bar.name}</Heading>
-        <Text color="gray.400" fontSize="sm">Count remaining stock. This will close the bar and create a close-out movement.</Text>
+        <Text color="gray.400" fontSize="sm">Count remaining stock. Spirits can be counted in bottles + tots.</Text>
 
         {inventory.length === 0 ? (
           <Text color="gray.500">No inventory to close out.</Text>
@@ -115,22 +112,45 @@ export default function CloseOutPage() {
                 {idx > 0 && <Divider borderColor="gray.700" />}
                 <Box px={4} py={2}><Text fontSize="xs" color="gray.400" textTransform="uppercase" fontWeight="semibold">{cat}</Text></Box>
                 {rows.map((row) => (
-                  <HStack key={row.id} px={4} py={2} justify="space-between">
-                    <Box flex={1}>
+                  <HStack key={row.id} px={4} py={2} justify="space-between" wrap="wrap" gap={2}>
+                    <Box flex={1} minW="120px">
                       <Text fontSize="sm" fontWeight="medium">{row.product.name}</Text>
-                      <Text fontSize="xs" color="gray.500">{row.product.unit} · Current: {row.currentQuantity}</Text>
+                      <Text fontSize="xs" color="gray.500">
+                        Current: {row.currentQuantity} btl{row.product.totsPerBottle ? ` + ${row.currentTots} tots` : ''}
+                      </Text>
                     </Box>
-                    <NumberInput
-                      min={0} size="sm" w="90px"
-                      defaultValue={row.currentQuantity}
-                      onChange={(_, val) => setCounts((p) => ({ ...p, [row.product.id]: isNaN(val) ? 0 : val }))}
-                    >
-                      <NumberInputField bg="gray.700" borderColor="gray.600" />
-                      <NumberInputStepper>
-                        <NumberIncrementStepper borderColor="gray.600" />
-                        <NumberDecrementStepper borderColor="gray.600" />
-                      </NumberInputStepper>
-                    </NumberInput>
+                    <HStack spacing={2}>
+                      <Box textAlign="center">
+                        {row.product.totsPerBottle && <Text fontSize="xs" color="gray.500" mb={1}>btl</Text>}
+                        <NumberInput
+                          min={0} size="sm" w="80px"
+                          defaultValue={row.currentQuantity}
+                          onChange={(_, val) => setCounts((p) => ({ ...p, [row.product.id]: isNaN(val) ? 0 : val }))}
+                        >
+                          <NumberInputField bg="gray.700" borderColor="gray.600" />
+                          <NumberInputStepper>
+                            <NumberIncrementStepper borderColor="gray.600" />
+                            <NumberDecrementStepper borderColor="gray.600" />
+                          </NumberInputStepper>
+                        </NumberInput>
+                      </Box>
+                      {row.product.totsPerBottle && (
+                        <Box textAlign="center">
+                          <Text fontSize="xs" color="gray.500" mb={1}>tots</Text>
+                          <NumberInput
+                            min={0} max={row.product.totsPerBottle - 1} size="sm" w="80px"
+                            defaultValue={row.currentTots}
+                            onChange={(_, val) => setTots((p) => ({ ...p, [row.product.id]: isNaN(val) ? 0 : val }))}
+                          >
+                            <NumberInputField bg="gray.700" borderColor="gray.600" />
+                            <NumberInputStepper>
+                              <NumberIncrementStepper borderColor="gray.600" />
+                              <NumberDecrementStepper borderColor="gray.600" />
+                            </NumberInputStepper>
+                          </NumberInput>
+                        </Box>
+                      )}
+                    </HStack>
                   </HStack>
                 ))}
               </Box>

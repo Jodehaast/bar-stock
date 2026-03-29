@@ -20,11 +20,11 @@ const BASE_PRODUCTS = [
   { name: 'House White Wine', unit: 'bottle', category: 'wine' },
   { name: 'House Rosé', unit: 'bottle', category: 'wine' },
   // Spirits
-  { name: 'Klipdrift Brandy', unit: 'bottle', category: 'spirit' },
-  { name: 'Jameson Whiskey', unit: 'bottle', category: 'spirit' },
-  { name: 'Absolut Vodka', unit: 'bottle', category: 'spirit' },
-  { name: 'Bacardi Rum', unit: 'bottle', category: 'spirit' },
-  { name: 'Tanqueray Gin', unit: 'bottle', category: 'spirit' },
+  { name: 'Klipdrift Brandy', unit: 'bottle', category: 'spirit', totsPerBottle: 30 },
+  { name: 'Jameson Whiskey', unit: 'bottle', category: 'spirit', totsPerBottle: 30 },
+  { name: 'Absolut Vodka', unit: 'bottle', category: 'spirit', totsPerBottle: 30 },
+  { name: 'Bacardi Rum', unit: 'bottle', category: 'spirit', totsPerBottle: 30 },
+  { name: 'Tanqueray Gin', unit: 'bottle', category: 'spirit', totsPerBottle: 30 },
   // Soft drinks / mixers
   { name: 'Coca-Cola', unit: 'can', category: 'soft drink' },
   { name: 'Sprite', unit: 'can', category: 'soft drink' },
@@ -69,7 +69,7 @@ async function main() {
   for (const p of BASE_PRODUCTS) {
     await prisma.product.upsert({
       where: { name: p.name },
-      update: {},
+      update: { totsPerBottle: (p as any).totsPerBottle ?? null },
       create: p,
     })
   }

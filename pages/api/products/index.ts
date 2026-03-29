@@ -15,10 +15,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   if (req.method === 'POST') {
     if (!requireRole(res, session, ['ADMIN'])) return
-    const { name, unit, category } = req.body
+    const { name, unit, category, totsPerBottle } = req.body
     if (!name || !unit) return res.status(400).json({ error: 'name and unit are required' })
     try {
-      const product = await prisma.product.create({ data: { name, unit, category } })
+      const product = await prisma.product.create({
+        data: { name, unit, category, totsPerBottle: totsPerBottle ? Number(totsPerBottle) : null },
+      })
       return res.status(201).json(product)
     } catch {
       return res.status(409).json({ error: 'Product already exists' })

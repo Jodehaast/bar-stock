@@ -75,7 +75,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           create: lines.map((l: any) => ({
             productId: Number(l.productId),
             quantityRequested: Number(l.quantity),
+            totsRequested: l.tots != null ? Number(l.tots) : null,
             quantityActual: isImmediate ? Number(l.quantity) : null,
+            totsActual: isImmediate && l.tots != null ? Number(l.tots) : null,
           })),
         },
       },

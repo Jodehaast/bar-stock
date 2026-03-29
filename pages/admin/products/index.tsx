@@ -2,7 +2,8 @@ import {
   Box, Button, Heading, HStack, Table, Thead, Tbody, Tr, Th, Td,
   Badge, Switch, useToast, useDisclosure, Modal, ModalOverlay,
   ModalContent, ModalHeader, ModalBody, ModalFooter, ModalCloseButton,
-  FormControl, FormLabel, Input, Select, VStack,
+  FormControl, FormLabel, Input, Select, VStack, NumberInput, NumberInputField,
+  NumberInputStepper, NumberIncrementStepper, NumberDecrementStepper,
 } from '@chakra-ui/react'
 import { AddIcon } from '@chakra-ui/icons'
 import AppShell from '@/components/layout/AppShell'
@@ -13,18 +14,20 @@ import { useForm } from 'react-hook-form'
 import { useState } from 'react'
 
 interface Product {
-  id: number; name: string; unit: string; category: string | null; isActive: boolean
+  id: number; name: string; unit: string; category: string | null; isActive: boolean; totsPerBottle: number | null
 }
 
 interface FormData {
-  name: string; unit: string; category: string
+  name: string; unit: string; category: string; totsPerBottle?: number
 }
 
 export default function ProductsPage() {
   const { data: products = [] } = useSWR<Product[]>('/api/products')
   const { isOpen, onOpen, onClose } = useDisclosure()
-  const { register, handleSubmit, reset, formState: { isSubmitting } } = useForm<FormData>()
+  const { register, handleSubmit, reset, watch, formState: { isSubmitting } } = useForm<FormData>()
   const toast = useToast()
+
+  const watchedCategory = watch('category')
 
   const onSubmit = async (data: FormData) => {
     const res = await fetch('/api/products', {
@@ -74,6 +77,7 @@ export default function ProductsPage() {
                 <Tr>
                   <Th color="gray.400">Name</Th>
                   <Th color="gray.400">Unit</Th>
+                  <Th color="gray.400">Tots/Btl</Th>
                   <Th color="gray.400">Active</Th>
                 </Tr>
               </Thead>
@@ -82,6 +86,7 @@ export default function ProductsPage() {
                   <Tr key={p.id} opacity={p.isActive ? 1 : 0.5}>
                     <Td>{p.name}</Td>
                     <Td><Badge variant="subtle" colorScheme="gray">{p.unit}</Badge></Td>
+                    <Td>{p.totsPerBottle != null ? p.totsPerBottle : '-'}</Td>
                     <Td>
                       <Switch
                         isChecked={p.isActive}
@@ -130,6 +135,21 @@ export default function ProductsPage() {
                     <option value="other">Other</option>
                   </Select>
                 </FormControl>
+                {watchedCategory === 'spirit' && (
+                  <FormControl>
+                    <FormLabel fontSize="sm">Tots per Bottle</FormLabel>
+                    <NumberInput min={1} defaultValue={30} bg="gray.700">
+                      <NumberInputField
+                        {...register('totsPerBottle', { valueAsNumber: true })}
+                        bg="gray.700" borderColor="gray.600"
+                      />
+                      <NumberInputStepper>
+                        <NumberIncrementStepper borderColor="gray.600" />
+                        <NumberDecrementStepper borderColor="gray.600" />
+                      </NumberInputStepper>
+                    </NumberInput>
+                  </FormControl>
+                )}
               </VStack>
             </ModalBody>
             <ModalFooter gap={3}>

@@ -1,16 +1,28 @@
 import {
-  Table, Thead, Tbody, Tr, Th, Td, Box, Text, Badge,
+  Table, Thead, Tbody, Tr, Th, Td, Box, Text,
 } from '@chakra-ui/react'
 
 interface InventoryRow {
   id: number
   openingQuantity: number
   currentQuantity: number
-  product: { name: string; unit: string; category: string | null }
+  openingTots: number
+  currentTots: number
+  product: { name: string; unit: string; category: string | null; totsPerBottle: number | null }
 }
 
 interface Props {
   inventory: InventoryRow[]
+}
+
+function formatQty(bottles: number, tots: number, totsPerBottle: number | null) {
+  if (!totsPerBottle) return String(bottles)
+  if (tots === 0) return `${bottles} btl`
+  return `${bottles} btl + ${tots} tots`
+}
+
+function toTotalTots(bottles: number, tots: number, totsPerBottle: number) {
+  return bottles * totsPerBottle + tots
 }
 
 export default function BarInventoryTable({ inventory }: Props) {
@@ -42,19 +54,34 @@ export default function BarInventoryTable({ inventory }: Props) {
               </Thead>
               <Tbody>
                 {rows.map((row) => {
-                  const variance = row.currentQuantity - row.openingQuantity
+                  const tpb = row.product.totsPerBottle
+                  const openingDisplay = formatQty(row.openingQuantity, row.openingTots, tpb)
+                  const currentDisplay = formatQty(row.currentQuantity, row.currentTots, tpb)
+                  let varianceDisplay: string
+                  let varianceColor: string
+                  if (tpb) {
+                    const openTotal = toTotalTots(row.openingQuantity, row.openingTots, tpb)
+                    const curTotal = toTotalTots(row.currentQuantity, row.currentTots, tpb)
+                    const v = curTotal - openTotal
+                    varianceDisplay = `${v > 0 ? '+' : ''}${v} tots`
+                    varianceColor = v > 0 ? 'green.400' : v < 0 ? 'red.400' : 'gray.400'
+                  } else {
+                    const v = row.currentQuantity - row.openingQuantity
+                    varianceDisplay = `${v > 0 ? '+' : ''}${v}`
+                    varianceColor = v > 0 ? 'green.400' : v < 0 ? 'red.400' : 'gray.400'
+                  }
                   return (
                     <Tr key={row.id}>
                       <Td>
                         <Text fontWeight="medium">{row.product.name}</Text>
-                        <Text fontSize="xs" color="gray.500">{row.product.unit}</Text>
-                      </Td>
-                      <Td isNumeric color="gray.300">{row.openingQuantity}</Td>
-                      <Td isNumeric fontWeight="semibold">{row.currentQuantity}</Td>
-                      <Td isNumeric>
-                        <Text color={variance > 0 ? 'green.400' : variance < 0 ? 'red.400' : 'gray.400'}>
-                          {variance > 0 ? '+' : ''}{variance}
+                        <Text fontSize="xs" color="gray.500">
+                          {row.product.unit}{tpb ? ` · ${tpb} tots/btl` : ''}
                         </Text>
+                      </Td>
+                      <Td isNumeric color="gray.300">{openingDisplay}</Td>
+                      <Td isNumeric fontWeight="semibold">{currentDisplay}</Td>
+                      <Td isNumeric>
+                        <Text color={varianceColor}>{varianceDisplay}</Text>
                       </Td>
                     </Tr>
                   )
