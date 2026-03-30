@@ -14,7 +14,7 @@ import useSWR from 'swr'
 import { useSession } from 'next-auth/react'
 
 interface Bar {
-  id: number; name: string; location: string | null; status: string
+  id: number; name: string; location: string | null; status: string; stockType: string
   responsibleCompany: string | null
   manager: { id: number; name: string } | null
   event: { id: number; name: string; status: string }
@@ -22,7 +22,8 @@ interface Bar {
 
 interface InventoryRow {
   id: number; openingQuantity: number; currentQuantity: number
-  product: { name: string; unit: string; category: string | null }
+  openingTots: number; currentTots: number
+  product: { name: string; unit: string; category: string | null; totsPerBottle: number | null }
 }
 
 export default function BarDashboard() {
@@ -56,6 +57,7 @@ export default function BarDashboard() {
             <VStack align="start" spacing={1}>
               <HStack>
                 <StatusBadge value={bar.status} type="bar" />
+                <StatusBadge value={bar.stockType} type="stockType" />
                 {bar.location && <Text fontSize="sm" color="gray.400">{bar.location}</Text>}
               </HStack>
               <Heading size="lg">{bar.name}</Heading>

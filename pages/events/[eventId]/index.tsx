@@ -14,7 +14,7 @@ import useSWR, { mutate } from 'swr'
 import { useSession } from 'next-auth/react'
 
 interface Bar {
-  id: number; name: string; location: string | null; status: string
+  id: number; name: string; location: string | null; status: string; stockType: string
   responsibleCompany: string | null
   manager: { name: string } | null
   _count: { inventory: number }
@@ -110,6 +110,14 @@ export default function EventDashboard() {
           <Button as={NextLink} href={`/events/${eventId}/reconciliation`} size="sm" variant="outline">
             Reconciliation
           </Button>
+          <Button as={NextLink} href={`/events/${eventId}/central-stock`} size="sm" variant="outline">
+            Central Store
+          </Button>
+          {admin && (
+            <Button as={NextLink} href={`/events/${eventId}/stock-upload`} size="sm" variant="outline">
+              Upload Stock
+            </Button>
+          )}
         </HStack>
 
         {/* Bars grid */}
@@ -134,7 +142,10 @@ export default function EventDashboard() {
               >
                 <VStack align="start" spacing={2}>
                   <HStack justify="space-between" w="full">
-                    <StatusBadge value={bar.status} type="bar" />
+                    <HStack spacing={1}>
+                      <StatusBadge value={bar.status} type="bar" />
+                      <StatusBadge value={bar.stockType} type="stockType" />
+                    </HStack>
                     {bar._count.inventory > 0 && (
                       <Text fontSize="xs" color="gray.500">{bar._count.inventory} SKUs</Text>
                     )}

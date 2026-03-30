@@ -35,6 +35,32 @@ export default function ReconciliationPage() {
 
   const printPage = () => window.print()
 
+  const downloadCSV = () => {
+    const headers = ['Bar','Product','Unit','Opening','Received','Transferred In','Transferred Out','Close Out','Current','Variance']
+    const rows: string[][] = [headers]
+    for (const { bar, products } of results) {
+      for (const row of products) {
+        const expected = row.opening + row.received + row.transferredIn - row.transferredOut - row.closeOut
+        const variance = row.current - expected
+        rows.push([
+          bar.name, row.productName, row.unit,
+          String(row.opening), String(row.received), String(row.transferredIn),
+          String(row.transferredOut), String(row.closeOut), String(row.current),
+          String(variance)
+        ])
+      }
+    }
+    const csv = rows.map(r => r.map(v => `"${v}"`).join(',')).join('\n')
+    const blob = new Blob([csv], { type: 'text/csv' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    const safeName = (event?.name ?? 'event').replace(/[^a-z0-9]/gi, '-').toLowerCase()
+    a.download = `reconciliation-${safeName}-${new Date().toISOString().slice(0,10)}.csv`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
   return (
     <AppShell title="Reconciliation">
       <VStack align="stretch" spacing={6}>
@@ -53,7 +79,10 @@ export default function ReconciliationPage() {
               </Text>
             )}
           </VStack>
-          <Button size="sm" variant="outline" onClick={printPage}>Print / Export</Button>
+          <HStack>
+            <Button size="sm" variant="outline" onClick={printPage}>Print</Button>
+            <Button size="sm" variant="outline" onClick={downloadCSV}>Download CSV</Button>
+          </HStack>
         </HStack>
 
         {results.length === 0 ? (

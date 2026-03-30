@@ -44,11 +44,14 @@ const LABELS: Record<string, string> = {
   BAR_MANAGER: 'Bar Manager',
   RUNNER: 'Runner',
   VIEWER: 'Viewer',
+  PAID: 'Paid',
+  COMP: 'Comp',
+  MIXED: 'Mixed',
 }
 
 interface Props {
   value: string
-  type?: 'event' | 'bar' | 'movement' | 'movementType' | 'role'
+  type?: 'event' | 'bar' | 'movement' | 'movementType' | 'role' | 'stockType'
   size?: 'sm' | 'md'
 }
 
@@ -57,6 +60,12 @@ const ROLE_COLORS: Record<string, string> = {
   BAR_MANAGER: 'cyan',
   RUNNER: 'orange',
   VIEWER: 'gray',
+}
+
+const STOCK_TYPE_COLORS: Record<string, string> = {
+  PAID: 'green',
+  COMP: 'purple',
+  MIXED: 'yellow',
 }
 
 export default function StatusBadge({ value, type = 'movement', size = 'sm' }: Props) {
@@ -69,6 +78,8 @@ export default function StatusBadge({ value, type = 'movement', size = 'sm' }: P
       ? MOVEMENT_TYPE_COLORS
       : type === 'role'
       ? ROLE_COLORS
+      : type === 'stockType'
+      ? STOCK_TYPE_COLORS
       : MOVEMENT_COLORS
 
   return (

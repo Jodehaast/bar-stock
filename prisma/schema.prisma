@@ -31,8 +31,9 @@ model Event {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  bars     Bar[]
-  products EventProduct[]
+  bars         Bar[]
+  products     EventProduct[]
+  centralStock EventCentralStock[]
 }
 
 model Bar {
@@ -42,6 +43,7 @@ model Bar {
   location           String?
   responsibleCompany String?
   status             String   @default("OPEN")
+  stockType          String   @default("PAID")
   managerId          Int?
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
@@ -67,6 +69,7 @@ model Product {
   eventProducts EventProduct[]
   inventory     BarInventory[]
   movementLines MovementLine[]
+  centralStock  EventCentralStock[]
 }
 
 model EventProduct {
@@ -132,4 +135,19 @@ model BarInventory {
   product Product @relation(fields: [productId], references: [id])
 
   @@unique([barId, productId])
+}
+
+model EventCentralStock {
+  id        Int      @id @default(autoincrement())
+  eventId   Int
+  productId Int
+  quantity  Int
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  event   Event   @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id])
+
+  @@unique([eventId, productId])
 }

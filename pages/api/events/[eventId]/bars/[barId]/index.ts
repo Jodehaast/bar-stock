@@ -23,7 +23,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   if (req.method === 'PATCH') {
     if (!requireRole(res, session, ['ADMIN'])) return
-    const { name, location, responsibleCompany, managerId, status } = req.body
+    const { name, location, responsibleCompany, managerId, status, stockType } = req.body
     const bar = await prisma.bar.update({
       where: { id: barId },
       data: {
@@ -32,6 +32,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         ...(responsibleCompany !== undefined && { responsibleCompany }),
         ...(managerId !== undefined && { managerId: managerId || null }),
         ...(status && { status }),
+        ...(stockType && { stockType }),
       },
     })
     return res.json(bar)
