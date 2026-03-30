@@ -47,11 +47,13 @@ const LABELS: Record<string, string> = {
   PAID: 'Paid',
   COMP: 'Comp',
   MIXED: 'Mixed',
+  BAR: 'Bar',
+  STOCK_ROOM: 'Stock Room',
 }
 
 interface Props {
   value: string
-  type?: 'event' | 'bar' | 'movement' | 'movementType' | 'role' | 'stockType'
+  type?: 'event' | 'bar' | 'movement' | 'movementType' | 'role' | 'stockType' | 'barType'
   size?: 'sm' | 'md'
 }
 
@@ -68,6 +70,11 @@ const STOCK_TYPE_COLORS: Record<string, string> = {
   MIXED: 'yellow',
 }
 
+const BAR_TYPE_COLORS: Record<string, string> = {
+  BAR: 'blue',
+  STOCK_ROOM: 'orange',
+}
+
 export default function StatusBadge({ value, type = 'movement', size = 'sm' }: Props) {
   const colorMap =
     type === 'event'
@@ -80,6 +87,8 @@ export default function StatusBadge({ value, type = 'movement', size = 'sm' }: P
       ? ROLE_COLORS
       : type === 'stockType'
       ? STOCK_TYPE_COLORS
+      : type === 'barType'
+      ? BAR_TYPE_COLORS
       : MOVEMENT_COLORS
 
   return (

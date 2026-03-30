@@ -44,6 +44,7 @@ model Bar {
   responsibleCompany String?
   status             String   @default("OPEN")
   stockType          String   @default("PAID")
+  barType            String   @default("BAR")
   managerId          Int?
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt

@@ -12,7 +12,7 @@ import { useForm } from 'react-hook-form'
 import useSWR from 'swr'
 
 interface FormData {
-  name: string; location: string; responsibleCompany: string; managerId: string; stockType: string
+  name: string; location: string; responsibleCompany: string; managerId: string; stockType: string; barType: string
 }
 interface User { id: number; name: string; role: string }
 
@@ -29,7 +29,7 @@ export default function NewBarPage() {
     const res = await fetch(`/api/events/${eventId}/bars`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...data, managerId: data.managerId || null, stockType: data.stockType || 'PAID' }),
+      body: JSON.stringify({ ...data, managerId: data.managerId || null, stockType: data.stockType || 'PAID', barType: data.barType || 'BAR' }),
     })
     if (res.ok) {
       toast({ title: 'Bar added', status: 'success', duration: 2000 })
@@ -70,6 +70,13 @@ export default function NewBarPage() {
                   <option value="PAID">Paid</option>
                   <option value="COMP">Comp</option>
                   <option value="MIXED">Mixed</option>
+                </Select>
+              </FormControl>
+              <FormControl>
+                <FormLabel fontSize="sm">Bar Type</FormLabel>
+                <Select {...register('barType')} bg="gray.700" borderColor="gray.600" defaultValue="BAR">
+                  <option value="BAR">Bar (serving drinks)</option>
+                  <option value="STOCK_ROOM">Stock Room (section store)</option>
                 </Select>
               </FormControl>
               <FormControl>

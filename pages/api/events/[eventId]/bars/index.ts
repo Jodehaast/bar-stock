@@ -23,11 +23,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   if (req.method === 'POST') {
     if (!requireRole(res, session, ['ADMIN'])) return
-    const { name, location, responsibleCompany, managerId, stockType } = req.body
+    const { name, location, responsibleCompany, managerId, stockType, barType } = req.body
     if (!name) return res.status(400).json({ error: 'name required' })
     try {
       const bar = await prisma.bar.create({
-        data: { eventId, name, location, responsibleCompany, managerId: managerId || null, stockType: stockType || 'PAID' },
+        data: { eventId, name, location, responsibleCompany, managerId: managerId || null, stockType: stockType || 'PAID', barType: barType || 'BAR' },
       })
       return res.status(201).json(bar)
     } catch {
