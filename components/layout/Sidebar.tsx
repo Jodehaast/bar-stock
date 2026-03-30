@@ -5,7 +5,7 @@ import NextLink from 'next/link'
 import { useRouter } from 'next/router'
 import { useSession } from 'next-auth/react'
 import {
-  CalendarIcon, ViewIcon, SettingsIcon, StarIcon, ArrowForwardIcon,
+  CalendarIcon, ViewIcon, SettingsIcon, StarIcon, ArrowForwardIcon, BellIcon,
 } from '@chakra-ui/icons'
 
 interface NavItem {
@@ -16,6 +16,7 @@ interface NavItem {
 }
 
 const NAV: NavItem[] = [
+  { label: 'Inbox', href: '/inbox', icon: BellIcon },
   { label: 'Events', href: '/events', icon: CalendarIcon },
   { label: 'Products', href: '/admin/products', icon: StarIcon, roles: ['ADMIN'] },
   { label: 'Users', href: '/admin/users', icon: SettingsIcon, roles: ['ADMIN'] },

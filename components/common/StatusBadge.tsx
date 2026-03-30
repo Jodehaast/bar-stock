@@ -14,9 +14,13 @@ const BAR_COLORS: Record<string, string> = {
 const MOVEMENT_COLORS: Record<string, string> = {
   PENDING: 'yellow',
   APPROVED: 'blue',
-  DISPATCHED: 'orange',
+  READY: 'cyan',
+  IN_TRANSIT: 'orange',
   DELIVERED: 'green',
-  CANCELLED: 'red',
+  REJECTED: 'red',
+  CANCELLED: 'gray',
+  // Legacy statuses kept for backward compat
+  DISPATCHED: 'orange',
 }
 
 const MOVEMENT_TYPE_COLORS: Record<string, string> = {
@@ -37,12 +41,19 @@ const LABELS: Record<string, string> = {
   OPEN: 'Open',
   PENDING: 'Pending',
   APPROVED: 'Approved',
-  DISPATCHED: 'Dispatched',
+  READY: 'Ready to Collect',
+  IN_TRANSIT: 'In Transit',
   DELIVERED: 'Delivered',
+  REJECTED: 'Rejected',
   CANCELLED: 'Cancelled',
+  // Legacy
+  DISPATCHED: 'Dispatched',
   ADMIN: 'Admin',
+  SECTION_MANAGER: 'Section Manager',
+  STOCK_ROOM_STAFF: 'Stock Room Staff',
   BAR_MANAGER: 'Bar Manager',
   RUNNER: 'Runner',
+  BAR_STAFF: 'Bar Staff',
   VIEWER: 'Viewer',
   PAID: 'Paid',
   COMP: 'Comp',
@@ -59,8 +70,11 @@ interface Props {
 
 const ROLE_COLORS: Record<string, string> = {
   ADMIN: 'red',
+  SECTION_MANAGER: 'teal',
+  STOCK_ROOM_STAFF: 'blue',
   BAR_MANAGER: 'cyan',
   RUNNER: 'orange',
+  BAR_STAFF: 'purple',
   VIEWER: 'gray',
 }
 

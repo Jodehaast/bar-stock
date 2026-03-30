@@ -38,15 +38,15 @@ export default function BarsUploadPage() {
   const toast = useToast()
 
   const downloadTemplate = () => {
-    const headers = ['Name', 'Location', 'Level', 'Foyer', 'Responsible Company', 'Stock Type', 'Bar Type']
+    const headers = ['Name', 'Suite Owner / Company', 'Level', 'Location', 'Stock Type', 'Bar Type']
     const examples = [
-      ['5100W', 'Level 5 - West', 'Level 5', 'A', '', 'PAID', 'BAR'],
-      ['5101W', 'Level 5 - West', 'Level 5', 'A', 'Tops Bar Co', 'COMP', 'BAR'],
-      ['Section A Store', 'Level 5 - West', 'Level 5', 'A', '', 'PAID', 'STOCK_ROOM'],
+      ['5100W', 'ABC Events', 'Level 5', 'West', 'PAID', 'BAR'],
+      ['5101W', 'XYZ Hospitality', 'Level 5', 'West', 'COMP', 'BAR'],
+      ['Level 5 West Store', '', 'Level 5', 'West', 'PAID', 'STOCK_ROOM'],
     ]
     const ws = XLSX.utils.aoa_to_sheet([headers, ...examples])
     // Set column widths
-    ws['!cols'] = [20, 22, 12, 8, 22, 14, 14].map(w => ({ wch: w }))
+    ws['!cols'] = [20, 24, 12, 16, 14, 14].map(w => ({ wch: w }))
     const wb = XLSX.utils.book_new()
     XLSX.utils.book_append_sheet(wb, ws, 'Bars')
     XLSX.writeFile(wb, 'bars-template.xlsx')
@@ -82,10 +82,10 @@ export default function BarsUploadPage() {
       if (!name) { errs.push(`Row ${i + 2}: missing Name`); return }
       results.push({
         name,
-        location: String(row['Location'] ?? row['Primary Location'] ?? row['location'] ?? '').trim(),
+        location: String(row['Location'] ?? row['location'] ?? '').trim(),
         level: String(row['Level'] ?? row['level'] ?? '').trim(),
-        foyer: String(row['Foyer'] ?? row['foyer'] ?? '').trim(),
-        responsibleCompany: String(row['Responsible Company'] ?? row['responsible company'] ?? '').trim(),
+        foyer: '',
+        responsibleCompany: String(row['Suite Owner / Company'] ?? row['Responsible Company'] ?? row['responsible company'] ?? '').trim(),
         stockType: String(row['Stock Type'] ?? row['stock type'] ?? 'PAID').trim().toUpperCase() || 'PAID',
         barType: String(row['Bar Type'] ?? row['bar type'] ?? 'BAR').trim().toUpperCase() || 'BAR',
       })
@@ -134,12 +134,12 @@ export default function BarsUploadPage() {
         <Box bg="gray.800" borderRadius="xl" p={4} border="1px" borderColor="gray.700">
           <Text fontSize="sm" fontWeight="semibold" mb={2}>Template columns:</Text>
           <HStack wrap="wrap" gap={2}>
-            {['Name *', 'Location', 'Level', 'Foyer', 'Responsible Company', 'Stock Type (PAID/COMP/MIXED)', 'Bar Type (BAR/STOCK_ROOM)'].map(col => (
+            {['Name *', 'Suite Owner / Company', 'Level', 'Location', 'Stock Type (PAID/COMP/MIXED)', 'Bar Type (BAR/STOCK_ROOM)'].map(col => (
               <Tag key={col} size="sm" colorScheme={col.includes('*') ? 'red' : 'gray'}>{col}</Tag>
             ))}
           </HStack>
           <Text fontSize="xs" color="gray.500" mt={2}>
-            Tip: For DHL Stadium suites, use Suite Number as Name and fill Level + Foyer columns for easy filtering later.
+            Tip: Use Suite Number as Name and fill Level + Location columns for easy filtering later.
           </Text>
         </Box>
 

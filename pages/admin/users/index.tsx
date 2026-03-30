@@ -7,14 +7,14 @@ import {
 import { AddIcon, DeleteIcon } from '@chakra-ui/icons'
 import AppShell from '@/components/layout/AppShell'
 import StatusBadge from '@/components/common/StatusBadge'
-import { requireAuth } from '@/lib/permissions'
+import { requireAuth, ROLE_LABELS } from '@/lib/permissions'
 import type { GetServerSideProps } from 'next'
 import useSWR, { mutate } from 'swr'
 import { useForm } from 'react-hook-form'
 import { useSession } from 'next-auth/react'
 
 interface User {
-  id: number; email: string; name: string; role: string; createdAt: string
+  id: number; email: string; name: string; role: 'ADMIN' | 'SECTION_MANAGER' | 'STOCK_ROOM_STAFF' | 'RUNNER' | 'BAR_STAFF' | 'VIEWER'; createdAt: string
 }
 
 interface FormData {
@@ -116,10 +116,9 @@ export default function UsersPage() {
                 <FormControl isRequired>
                   <FormLabel fontSize="sm">Role</FormLabel>
                   <Select {...register('role', { required: true })} bg="gray.700" borderColor="gray.600">
-                    <option value="ADMIN">Admin</option>
-                    <option value="BAR_MANAGER">Bar Manager</option>
-                    <option value="RUNNER">Runner</option>
-                    <option value="VIEWER">Viewer</option>
+                    {Object.entries(ROLE_LABELS).map(([value, label]) => (
+                      <option key={value} value={value}>{label}</option>
+                    ))}
                   </Select>
                 </FormControl>
               </VStack>

@@ -10,7 +10,7 @@ import NextLink from 'next/link'
 import { useRouter } from 'next/router'
 import AppShell from '@/components/layout/AppShell'
 import StatusBadge from '@/components/common/StatusBadge'
-import { requireAuth, canApproveMovements } from '@/lib/permissions'
+import { requireAuth, canApprove, canMarkReady, canDispatchAndDeliver } from '@/lib/permissions'
 import type { GetServerSideProps } from 'next'
 import useSWR from 'swr'
 import { useState } from 'react'
@@ -36,7 +36,9 @@ export default function MovementDetailPage() {
     movementId ? `/api/events/${eventId}/movements/${movementId}` : null
   )
   const { data: session } = useSession()
-  const canApprove = canApproveMovements(session)
+  const userCanApprove = canApprove(session)
+  const userCanMarkReady = canMarkReady(session)
+  const userCanDispatchAndDeliver = canDispatchAndDeliver(session)
   const role = (session?.user as any)?.role
   const toast = useToast()
 
@@ -56,7 +58,7 @@ export default function MovementDetailPage() {
     setLoading(null)
     if (res.ok) {
       mutate()
-      toast({ title: `Movement ${status.toLowerCase()}`, status: 'success', duration: 2000 })
+      toast({ title: `Movement ${status.toLowerCase().replace('_', ' ')}`, status: 'success', duration: 2000 })
       if (status === 'DELIVERED') router.push(`/events/${eventId}/movements`)
     } else {
       const err = await res.json()
@@ -66,7 +68,8 @@ export default function MovementDetailPage() {
 
   if (!movement) return <AppShell><Box p={8} color="gray.400">Loading...</Box></AppShell>
 
-  const canAct = canApprove || role === 'BAR_MANAGER'
+  const canCancel = ['ADMIN', 'SECTION_MANAGER', 'STOCK_ROOM_STAFF', 'RUNNER', 'BAR_STAFF'].includes(role)
+  const showActions = userCanApprove || userCanMarkReady || userCanDispatchAndDeliver || canCancel
 
   return (
     <AppShell title="Movement Detail">
@@ -120,7 +123,7 @@ export default function MovementDetailPage() {
                   </Td>
                   <Td isNumeric color="gray.300">{line.quantityRequested}</Td>
                   <Td isNumeric>
-                    {movement.status === 'DISPATCHED' && canApprove ? (
+                    {movement.status === 'IN_TRANSIT' && userCanDispatchAndDeliver ? (
                       <NumberInput
                         size="xs" min={0} w="70px"
                         defaultValue={line.quantityActual ?? line.quantityRequested}
@@ -145,25 +148,40 @@ export default function MovementDetailPage() {
         </Box>
 
         {/* Actions */}
-        {canAct && (
+        {showActions && (
           <HStack wrap="wrap" gap={2}>
-            {movement.status === 'PENDING' && canApprove && (
-              <Button colorScheme="blue" size="sm" isLoading={loading === 'APPROVED'} onClick={() => transition('APPROVED')}>
-                Approve
+            {/* PENDING: Approve + Reject (SECTION_MANAGER / ADMIN) */}
+            {movement.status === 'PENDING' && userCanApprove && (
+              <>
+                <Button colorScheme="green" size="sm" isLoading={loading === 'APPROVED'} onClick={() => transition('APPROVED')}>
+                  Approve
+                </Button>
+                <Button colorScheme="red" variant="outline" size="sm" isLoading={loading === 'REJECTED'} onClick={() => transition('REJECTED')}>
+                  Reject
+                </Button>
+              </>
+            )}
+            {/* APPROVED: Mark Ready (STOCK_ROOM_STAFF / ADMIN) */}
+            {movement.status === 'APPROVED' && userCanMarkReady && (
+              <Button colorScheme="blue" size="sm" isLoading={loading === 'READY'} onClick={() => transition('READY')}>
+                Mark Ready
               </Button>
             )}
-            {movement.status === 'APPROVED' && canApprove && (
-              <Button colorScheme="orange" size="sm" isLoading={loading === 'DISPATCHED'} onClick={() => transition('DISPATCHED')}>
-                Mark Dispatched
+            {/* READY: Mark Collected (RUNNER / ADMIN) */}
+            {movement.status === 'READY' && userCanDispatchAndDeliver && (
+              <Button colorScheme="orange" size="sm" isLoading={loading === 'IN_TRANSIT'} onClick={() => transition('IN_TRANSIT')}>
+                Mark Collected
               </Button>
             )}
-            {movement.status === 'DISPATCHED' && canApprove && (
+            {/* IN_TRANSIT: Mark Delivered (RUNNER / ADMIN) */}
+            {movement.status === 'IN_TRANSIT' && userCanDispatchAndDeliver && (
               <Button colorScheme="green" size="sm" isLoading={loading === 'DELIVERED'} onClick={() => transition('DELIVERED')}>
                 Mark Delivered
               </Button>
             )}
-            {['PENDING', 'APPROVED'].includes(movement.status) && (
-              <Button colorScheme="red" variant="outline" size="sm" isLoading={loading === 'CANCELLED'} onClick={() => transition('CANCELLED')}>
+            {/* Cancel (non-terminal states) */}
+            {['PENDING', 'APPROVED', 'READY', 'IN_TRANSIT'].includes(movement.status) && canCancel && (
+              <Button colorScheme="red" variant="ghost" size="sm" isLoading={loading === 'CANCELLED'} onClick={() => transition('CANCELLED')}>
                 Cancel
               </Button>
             )}

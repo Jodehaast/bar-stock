@@ -3,7 +3,22 @@ import type { GetServerSidePropsContext, NextApiRequest, NextApiResponse } from 
 import { getServerSession } from 'next-auth'
 import { authOptions } from './auth'
 
-export type UserRole = 'ADMIN' | 'BAR_MANAGER' | 'RUNNER' | 'VIEWER'
+export type UserRole =
+  | 'ADMIN'           // Full access, ultimate approver
+  | 'SECTION_MANAGER' // Approves requests from their bars
+  | 'STOCK_ROOM_STAFF'// Preps stock, marks READY
+  | 'RUNNER'          // Collects and delivers stock
+  | 'BAR_STAFF'       // Creates requests, views their bar
+  | 'VIEWER'          // Read-only
+
+export const ROLE_LABELS: Record<UserRole, string> = {
+  ADMIN: 'Admin',
+  SECTION_MANAGER: 'Section Manager',
+  STOCK_ROOM_STAFF: 'Stock Room Staff',
+  RUNNER: 'Runner',
+  BAR_STAFF: 'Bar Staff',
+  VIEWER: 'Viewer',
+}
 
 export function getRole(session: Session | null): UserRole | null {
   return ((session?.user as any)?.role as UserRole) ?? null
@@ -13,21 +28,39 @@ export function isAdmin(session: Session | null) {
   return getRole(session) === 'ADMIN'
 }
 
-export function canApproveMovements(session: Session | null) {
+/** Can approve/reject PENDING requests */
+export function canApprove(session: Session | null) {
+  const role = getRole(session)
+  return role === 'ADMIN' || role === 'SECTION_MANAGER'
+}
+
+/** Can mark APPROVED → READY (stock prepped) */
+export function canMarkReady(session: Session | null) {
+  const role = getRole(session)
+  return role === 'ADMIN' || role === 'STOCK_ROOM_STAFF'
+}
+
+/** Can mark READY → IN_TRANSIT and IN_TRANSIT → DELIVERED */
+export function canDispatchAndDeliver(session: Session | null) {
   const role = getRole(session)
   return role === 'ADMIN' || role === 'RUNNER'
 }
 
+/** Can create restock/transfer requests */
 export function canRequestRestock(session: Session | null) {
   const role = getRole(session)
-  return role === 'ADMIN' || role === 'BAR_MANAGER'
+  return role === 'ADMIN' || role === 'BAR_STAFF' || role === 'SECTION_MANAGER' || role === 'RUNNER'
+}
+
+/** Legacy alias */
+export function canApproveMovements(session: Session | null) {
+  return canApprove(session)
 }
 
 export function canEditEvent(session: Session | null) {
   return isAdmin(session)
 }
 
-/** Throws a 401/403 JSON response if the user doesn't meet the role requirement */
 export function requireRole(
   res: NextApiResponse,
   session: Session | null,
@@ -38,14 +71,13 @@ export function requireRole(
     return false
   }
   const role = getRole(session)
-  if (!role || !roles.includes(role)) {
+  if (!role || !(roles as string[]).includes(role)) {
     res.status(403).json({ error: 'Forbidden' })
     return false
   }
   return true
 }
 
-/** Helper for API routes: returns session or writes 401 and returns null */
 export async function getSessionOrUnauthorized(
   req: NextApiRequest,
   res: NextApiResponse
@@ -58,7 +90,6 @@ export async function getSessionOrUnauthorized(
   return session
 }
 
-/** Helper for getServerSideProps: redirect to /login if not authenticated */
 export async function requireAuth(
   context: GetServerSidePropsContext
 ): Promise<{ redirect: { destination: string; permanent: boolean } } | null> {
