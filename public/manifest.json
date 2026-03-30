@@ -1,0 +1,13 @@
+{
+  "name": "BarStock – DHL Stadium",
+  "short_name": "BarStock",
+  "description": "Bar stock management for DHL Stadium events",
+  "start_url": "/my-work",
+  "display": "standalone",
+  "background_color": "#1a202c",
+  "theme_color": "#F6AD55",
+  "orientation": "portrait",
+  "icons": [
+    { "src": "/icons/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}

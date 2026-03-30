@@ -28,7 +28,15 @@ export default function LoginPage() {
     if (result?.error) {
       setError('Invalid email or password')
     } else {
-      router.push('/events')
+      // Get session to determine role
+      const session = await getSession()
+      const role = (session?.user as any)?.role
+      const operationalRoles = ['BAR_STAFF', 'RUNNER', 'STOCK_ROOM_STAFF', 'SECTION_MANAGER']
+      if (role && operationalRoles.includes(role)) {
+        router.push('/my-work')
+      } else {
+        router.push('/events')
+      }
     }
   }
 
@@ -96,6 +104,13 @@ export default function LoginPage() {
 
 export const getServerSideProps: GetServerSideProps = async (ctx) => {
   const session = await getSession(ctx)
-  if (session) return { redirect: { destination: '/events', permanent: false } }
+  if (session) {
+    const role = (session?.user as any)?.role
+    const operationalRoles = ['BAR_STAFF', 'RUNNER', 'STOCK_ROOM_STAFF', 'SECTION_MANAGER']
+    if (role && operationalRoles.includes(role)) {
+      return { redirect: { destination: '/my-work', permanent: false } }
+    }
+    return { redirect: { destination: '/events', permanent: false } }
+  }
   return { props: {} }
 }
