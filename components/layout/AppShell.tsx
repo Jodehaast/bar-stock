@@ -1,9 +1,5 @@
-import {
-  Box, Flex, useDisclosure, IconButton, HStack, Text, Avatar, Menu,
-  MenuButton, MenuList, MenuItem, Divider,
-} from '@chakra-ui/react'
-import { HamburgerIcon } from '@chakra-ui/icons'
-import { useSession, signOut } from 'next-auth/react'
+import { Box, Flex, useDisclosure, IconButton, HStack, Text, Badge } from '@chakra-ui/react'
+import { useSession } from 'next-auth/react'
 import Sidebar from './Sidebar'
 import MobileNav from './MobileNav'
 
@@ -18,62 +14,90 @@ export default function AppShell({ children, title }: Props) {
   const user = session?.user as any
 
   return (
-    <Flex minH="100vh" bg="gray.900">
+    <Flex minH="100vh" bg="app.bg">
       {/* Desktop sidebar */}
-      <Box display={{ base: 'none', md: 'block' }} w="220px" flexShrink={0}>
+      <Box display={{ base: 'none', lg: 'block' }} flexShrink={0}>
         <Sidebar />
       </Box>
 
       {/* Mobile nav drawer */}
       <MobileNav isOpen={isOpen} onClose={onClose} />
 
-      {/* Main content */}
-      <Flex flex={1} direction="column" overflow="hidden">
-        {/* Topbar */}
+      {/* Main content column */}
+      <Flex flex={1} direction="column" overflow="hidden" minW={0}>
+        {/* Glassmorphism topbar */}
         <HStack
-          px={4} py={3} bg="gray.800" borderBottom="1px" borderColor="gray.700"
-          justify="space-between" position="sticky" top={0} zIndex={10}
+          h="56px"
+          px={4}
+          bg="rgba(13,15,20,0.85)"
+          backdropFilter="blur(12px)"
+          borderBottom="1px solid"
+          borderColor="app.borderStrong"
+          justify="space-between"
+          position="sticky"
+          top={0}
+          zIndex={10}
+          flexShrink={0}
         >
-          <HStack>
+          <HStack spacing={3}>
             <IconButton
-              display={{ base: 'flex', md: 'none' }}
+              display={{ base: 'flex', lg: 'none' }}
               aria-label="Open menu"
-              icon={<HamburgerIcon />}
+              icon={
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="3" y1="6" x2="21" y2="6" />
+                  <line x1="3" y1="12" x2="21" y2="12" />
+                  <line x1="3" y1="18" x2="21" y2="18" />
+                </svg>
+              }
               variant="ghost"
-              onClick={onOpen}
               size="sm"
+              onClick={onOpen}
+              color="app.textSecondary"
             />
+            {/* BarStock wordmark on mobile (where sidebar is hidden) */}
+            <Text
+              display={{ base: 'block', lg: 'none' }}
+              fontWeight="800"
+              fontSize="md"
+              color="brand.400"
+              letterSpacing="-0.02em"
+            >
+              BarStock
+            </Text>
             {title && (
-              <Text fontWeight="semibold" fontSize="md" color="gray.100">
+              <Text
+                display={{ base: 'none', lg: 'block' }}
+                fontWeight="600"
+                fontSize="sm"
+                color="app.textPrimary"
+              >
                 {title}
               </Text>
             )}
           </HStack>
+
           {user && (
-            <Menu>
-              <MenuButton>
-                <HStack spacing={2} cursor="pointer">
-                  <Avatar size="xs" name={user.name} bg="brand.500" color="gray.900" />
-                  <Text fontSize="sm" color="gray.300" display={{ base: 'none', sm: 'block' }}>
-                    {user.name}
-                  </Text>
-                </HStack>
-              </MenuButton>
-              <MenuList bg="gray.800" borderColor="gray.700">
-                <MenuItem bg="gray.800" isDisabled>
-                  <Text fontSize="xs" color="gray.400">{user.email}</Text>
-                </MenuItem>
-                <Divider borderColor="gray.700" />
-                <MenuItem bg="gray.800" onClick={() => signOut({ callbackUrl: '/login' })}>
-                  Sign out
-                </MenuItem>
-              </MenuList>
-            </Menu>
+            <HStack spacing={2}>
+              <Badge
+                display={{ base: 'none', sm: 'flex' }}
+                colorScheme="yellow"
+                variant="subtle"
+                fontSize="xs"
+                px={2}
+                py={0.5}
+              >
+                {user.role?.replace(/_/g, ' ')}
+              </Badge>
+              <Text fontSize="sm" color="app.textSecondary" display={{ base: 'none', md: 'block' }}>
+                {user.name}
+              </Text>
+            </HStack>
           )}
         </HStack>
 
         {/* Page content */}
-        <Box flex={1} p={{ base: 4, md: 6 }} overflowY="auto">
+        <Box flex={1} bg="app.canvas" p={{ base: 4, md: 6, lg: 8 }} overflowY="auto">
           {children}
         </Box>
       </Flex>
