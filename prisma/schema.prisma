@@ -46,6 +46,7 @@ model Bar {
   stockType          String   @default("PAID")
   barType            String   @default("BAR")
   managerId          Int?
+  accessToken        String   @unique @default(cuid())
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
 
@@ -54,8 +55,25 @@ model Bar {
   inventory         BarInventory[]
   outboundMovements StockMovement[] @relation("FromBar")
   inboundMovements  StockMovement[] @relation("ToBar")
+  confirmations     BarStockConfirmation[]
 
   @@unique([eventId, name])
+}
+
+model BarStockConfirmation {
+  id                Int      @id @default(autoincrement())
+  barId             Int
+  productId         Int
+  confirmedQuantity Int
+  confirmedTots     Int      @default(0)
+  confirmedBy       String?
+  notes             String?
+  confirmedAt       DateTime @default(now())
+
+  bar     Bar     @relation(fields: [barId],     references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id])
+
+  @@unique([barId, productId])
 }
 
 model Product {
@@ -71,6 +89,7 @@ model Product {
   inventory     BarInventory[]
   movementLines MovementLine[]
   centralStock  EventCentralStock[]
+  confirmations BarStockConfirmation[]
 }
 
 model EventProduct {

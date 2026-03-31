@@ -94,6 +94,16 @@ export default function EventDashboard() {
               Add Bar
             </Button>
           )}
+          {admin && (
+            <Button as={NextLink} href={`/events/${eventId}/qrcodes`} size="sm" variant="outline">
+              🖨️ QR Codes
+            </Button>
+          )}
+          {admin && (
+            <Button as={NextLink} href={`/events/${eventId}/opening-summary`} size="sm" variant="outline">
+              📊 Opening Stock Check
+            </Button>
+          )}
           {(admin || canApprove) && event.status !== 'SETUP' && (
             <Button as={NextLink} href={`/events/${eventId}/setup`} size="sm" variant="outline">
               Allocate Stock
