@@ -501,11 +501,22 @@ export default function BarPublicPage() {
                         </HStack>
                         <Box px={4} py={3}>
                           <HStack wrap="wrap" gap={2}>
-                            {m.lines?.map((line: any) => (
-                              <Badge key={line.id} colorScheme="gray" variant="subtle" px={2} py={1}>
-                                {line.quantityRequested} × {line.product?.name}
-                              </Badge>
-                            ))}
+                            {m.lines?.map((line: any) => {
+                              const sent = line.quantityActual
+                              const isPartial = sent !== null && sent < line.quantityRequested
+                              return (
+                                <HStack key={line.id} spacing={1}>
+                                  <Badge colorScheme={isPartial ? 'orange' : 'gray'} variant="subtle" px={2} py={1}>
+                                    {sent !== null ? sent : line.quantityRequested} × {line.product?.name}
+                                  </Badge>
+                                  {isPartial && (
+                                    <Badge colorScheme="red" fontSize="9px">
+                                      {line.quantityRequested - sent} short
+                                    </Badge>
+                                  )}
+                                </HStack>
+                              )
+                            })}
                           </HStack>
                           {m.notes && <Text fontSize="xs" color="app.textMuted" mt={2}>"{m.notes}"</Text>}
                         </Box>

@@ -13,7 +13,7 @@ import StatusBadge from '@/components/common/StatusBadge'
 import { requireAuth, canApprove, canMarkReady, canDispatchAndDeliver } from '@/lib/permissions'
 import type { GetServerSideProps } from 'next'
 import useSWR from 'swr'
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
 
 interface Movement {
@@ -45,7 +45,7 @@ export default function MovementDetailPage() {
   const [actuals, setActuals] = useState<Record<number, number>>({})
   const [loading, setLoading] = useState<string | null>(null)
 
-  const transition = async (status: string) => {
+  const transition = async (status: string, createFollowUp?: boolean) => {
     setLoading(status)
     const lineUpdates = Object.entries(actuals).map(([id, quantityActual]) => ({
       id: Number(id), quantityActual,
@@ -53,7 +53,11 @@ export default function MovementDetailPage() {
     const res = await fetch(`/api/events/${eventId}/movements/${movementId}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status, lines: lineUpdates.length > 0 ? lineUpdates : undefined }),
+      body: JSON.stringify({
+        status,
+        lines: lineUpdates.length > 0 ? lineUpdates : undefined,
+        ...(createFollowUp !== undefined && { createFollowUp }),
+      }),
     })
     setLoading(null)
     if (res.ok) {
@@ -65,6 +69,11 @@ export default function MovementDetailPage() {
       toast({ title: err.error ?? 'Error', status: 'error', duration: 3000 })
     }
   }
+
+  // Check if any lines have shortfalls (actual < requested)
+  const shortfallCount = movement
+    ? movement.lines.filter(l => (actuals[l.id] ?? l.quantityActual ?? l.quantityRequested) < l.quantityRequested).length
+    : 0
 
   if (!movement) return <AppShell><Box p={8} color="gray.400">Loading...</Box></AppShell>
 
@@ -123,22 +132,36 @@ export default function MovementDetailPage() {
                   </Td>
                   <Td isNumeric color="gray.300">{line.quantityRequested}</Td>
                   <Td isNumeric>
-                    {movement.status === 'IN_TRANSIT' && userCanDispatchAndDeliver ? (
+                    {((movement.status === 'APPROVED' && userCanMarkReady) ||
+                      (movement.status === 'IN_TRANSIT' && userCanDispatchAndDeliver)) ? (
                       <NumberInput
-                        size="xs" min={0} w="70px"
+                        size="xs" min={0} max={line.quantityRequested} w="70px"
                         defaultValue={line.quantityActual ?? line.quantityRequested}
                         onChange={(_, val) => setActuals((p) => ({ ...p, [line.id]: isNaN(val) ? 0 : val }))}
                       >
-                        <NumberInputField bg="gray.700" borderColor="gray.600" px={2} />
+                        <NumberInputField
+                          bg="gray.700" borderColor="gray.600" px={2}
+                          color={
+                            (actuals[line.id] ?? line.quantityActual ?? line.quantityRequested) < line.quantityRequested
+                              ? 'orange.300' : 'white'
+                          }
+                        />
                         <NumberInputStepper>
                           <NumberIncrementStepper borderColor="gray.600" />
                           <NumberDecrementStepper borderColor="gray.600" />
                         </NumberInputStepper>
                       </NumberInput>
                     ) : (
-                      <Text color={line.quantityActual != null ? 'gray.100' : 'gray.500'}>
-                        {line.quantityActual ?? '—'}
-                      </Text>
+                      <HStack justify="flex-end" spacing={2}>
+                        <Text color={line.quantityActual != null ? 'gray.100' : 'gray.500'}>
+                          {line.quantityActual ?? '—'}
+                        </Text>
+                        {line.quantityActual != null && line.quantityActual < line.quantityRequested && (
+                          <Badge colorScheme="orange" fontSize="xs">
+                            {line.quantityRequested - line.quantityActual} short
+                          </Badge>
+                        )}
+                      </HStack>
                     )}
                   </Td>
                 </Tr>
@@ -163,9 +186,25 @@ export default function MovementDetailPage() {
             )}
             {/* APPROVED: Mark Ready (STOCK_ROOM_STAFF / ADMIN) */}
             {movement.status === 'APPROVED' && userCanMarkReady && (
-              <Button colorScheme="blue" size="sm" isLoading={loading === 'READY'} onClick={() => transition('READY')}>
-                Mark Ready
-              </Button>
+              <>
+                <Button
+                  colorScheme={shortfallCount > 0 ? 'orange' : 'blue'}
+                  size="sm"
+                  isLoading={loading === 'READY'}
+                  onClick={() => transition('READY', shortfallCount > 0 ? true : undefined)}
+                >
+                  {shortfallCount > 0 ? `⚠ Mark Ready + follow-up (${shortfallCount} short)` : 'Mark Ready'}
+                </Button>
+                {shortfallCount > 0 && (
+                  <Button
+                    colorScheme="gray" variant="outline" size="sm"
+                    isLoading={loading === 'READY'}
+                    onClick={() => transition('READY', false)}
+                  >
+                    Mark Ready (no follow-up)
+                  </Button>
+                )}
+              </>
             )}
             {/* READY: Mark Collected (RUNNER / ADMIN) */}
             {movement.status === 'READY' && userCanDispatchAndDeliver && (

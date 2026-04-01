@@ -57,11 +57,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   if (req.method === 'PATCH') {
     const userId = Number((session.user as any).id)
     const role = (session.user as any).role
-    const { status, notes, lines: lineUpdates } = req.body
+    const { status, notes, lines: lineUpdates, createFollowUp } = req.body
 
     const movement = await prisma.stockMovement.findUnique({
       where: { id: movementId },
-      include: { lines: true },
+      include: { lines: { include: { product: true } } },
     })
     if (!movement) return res.status(404).json({ error: 'Not found' })
 
@@ -85,15 +85,20 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       ...(status === 'DELIVERED' && { deliveredAt: now }),
     }
 
+    // Apply line actuals (allowed at both APPROVED→READY and IN_TRANSIT→DELIVERED stages)
+    const lineUpdateMap: Record<number, { quantityActual: number; totsActual?: number }> = {}
     if (lineUpdates && Array.isArray(lineUpdates)) {
       for (const lu of lineUpdates) {
+        const actualQty = Number(lu.quantityActual)
+        lineUpdateMap[lu.id] = { quantityActual: actualQty }
         await prisma.movementLine.update({
           where: { id: lu.id },
           data: {
-            quantityActual: Number(lu.quantityActual),
+            quantityActual: actualQty,
             ...(lu.totsActual != null && { totsActual: Number(lu.totsActual) }),
           },
         })
+        if (lu.totsActual != null) lineUpdateMap[lu.id].totsActual = Number(lu.totsActual)
       }
     }
 
@@ -114,6 +119,39 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
       return m
     })
+
+    // Create a follow-up PENDING request for any shortfall lines
+    if (createFollowUp && status === 'READY') {
+      const shortfallLines = movement.lines.filter(line => {
+        const sentQty = lineUpdateMap[line.id]?.quantityActual ?? line.quantityActual ?? line.quantityRequested
+        return sentQty < line.quantityRequested
+      })
+
+      if (shortfallLines.length > 0) {
+        await prisma.stockMovement.create({
+          data: {
+            eventId: movement.eventId,
+            type: 'RESTOCK',
+            status: 'PENDING',
+            toBarId: movement.toBarId,
+            createdById: userId,
+            notes: `Follow-up for #${movementId} — partial stock shortfall`,
+            lines: {
+              create: shortfallLines.map(line => {
+                const sentQty = lineUpdateMap[line.id]?.quantityActual ?? line.quantityActual ?? line.quantityRequested
+                return {
+                  productId: line.productId,
+                  quantityRequested: line.quantityRequested - sentQty,
+                }
+              }),
+            },
+          },
+        })
+        audit(userId, 'movement.created' as any, 'StockMovement', movementId, {
+          reason: 'follow_up_shortfall', parentMovementId: movementId,
+        })
+      }
+    }
 
     if (status) {
       const actionMap: Record<string, string> = {

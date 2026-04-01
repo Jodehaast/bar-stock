@@ -16,7 +16,7 @@ import AdminPreviewBanner from '@/components/common/AdminPreviewBanner'
 interface Movement {
   id: number; status: string; type: string; notes: string | null; createdAt: string; eventId: number
   toBar: { id: number; name: string } | null
-  lines: { id: number; quantityRequested: number; product: { name: string } }[]
+  lines: { id: number; quantityRequested: number; quantityActual: number | null; product: { name: string } }[]
 }
 interface Product { id: number; name: string; unit: string; category: string | null; isActive: boolean }
 interface Bar { id: number; name: string; eventId: number; event: { id: number; name: string; status: string } }
@@ -121,12 +121,25 @@ export default function BarStaffScreen() {
                     </Box>
                     <Box px={4} py={3}>
                       <VStack align="start" spacing={1}>
-                        {m.lines.map(l => (
-                          <Text key={l.id} fontSize="lg">
-                            <Text as="span" fontWeight="black" color={`${s.color}.300`}>{l.quantityRequested}× </Text>
-                            {l.product.name}
-                          </Text>
-                        ))}
+                        {m.lines.map(l => {
+                          const sent = l.quantityActual
+                          const isPartial = sent !== null && sent < l.quantityRequested
+                          return (
+                            <HStack key={l.id} spacing={2} align="center">
+                              <Text fontSize="lg">
+                                <Text as="span" fontWeight="black" color={isPartial ? 'orange.300' : `${s.color}.300`}>
+                                  {sent !== null ? sent : l.quantityRequested}×{' '}
+                                </Text>
+                                {l.product.name}
+                              </Text>
+                              {isPartial && (
+                                <Badge colorScheme="orange" fontSize="xs">
+                                  {l.quantityRequested - sent!} short
+                                </Badge>
+                              )}
+                            </HStack>
+                          )
+                        })}
                       </VStack>
                       {m.notes && <Text fontSize="xs" color="gray.400" mt={2}>📝 {m.notes}</Text>}
                     </Box>
@@ -149,7 +162,14 @@ export default function BarStaffScreen() {
                 return (
                   <Box key={m.id} bg="gray.800" borderRadius="xl" px={4} py={3} w="full" opacity={0.6}>
                     <HStack justify="space-between">
-                      <Text fontSize="sm">{s.emoji} {m.lines.map(l => `${l.quantityRequested}× ${l.product.name}`).join(', ')}</Text>
+                      <Text fontSize="sm">
+                      {s.emoji} {m.lines.map(l => {
+                        const sent = l.quantityActual
+                        const qty = sent !== null ? sent : l.quantityRequested
+                        const short = sent !== null && sent < l.quantityRequested ? ` (${l.quantityRequested - sent} short)` : ''
+                        return `${qty}× ${l.product.name}${short}`
+                      }).join(', ')}
+                    </Text>
                       <Badge colorScheme={s.color} fontSize="xs">{s.label}</Badge>
                     </HStack>
                   </Box>
