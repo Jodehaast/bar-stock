@@ -82,15 +82,15 @@ export default function BarStaffScreen() {
   const done = movements.filter(m => ['DELIVERED','REJECTED','CANCELLED'].includes(m.status))
 
   return (
-    <Box minH="100vh" bg="gray.900" color="white" pb="80px">
+    <Box minH="100vh" bg="app.bg" color="app.textPrimary" pb="80px">
       <AdminPreviewBanner roleLabel="Bar Staff" color="purple" />
-      <Box bg="gray.800" px={4} py={4} borderBottom="1px" borderColor="gray.700">
+      <Box bg="rgba(13,15,20,0.95)" px={4} py={4} borderBottom="1px solid" borderColor="app.border" position="sticky" top={0} zIndex={10}>
         <HStack justify="space-between">
           <VStack align="start" spacing={0}>
-            <Text fontSize="xs" color="gray.400">Logged in as</Text>
+            <Text fontSize="xs" color="app.textSecondary">Logged in as</Text>
             <Heading size="md">🍺 {name}</Heading>
           </VStack>
-          <Button size="sm" variant="ghost" color="gray.400" onClick={() => signOut({ callbackUrl: '/login' })}>
+          <Button size="sm" variant="ghost" color="app.textSecondary" onClick={() => signOut({ callbackUrl: '/login' })}>
             Sign out
           </Button>
         </HStack>
@@ -114,8 +114,8 @@ export default function BarStaffScreen() {
               {active.map(m => {
                 const s = STATUS_TEXT[m.status] ?? { label: m.status, color: 'gray', emoji: '•' }
                 return (
-                  <Box key={m.id} bg="gray.800" borderRadius="2xl" overflow="hidden" w="full"
-                    border="2px" borderColor={`${s.color}.500`}>
+                  <Box key={m.id} bg="app.surface" borderRadius="2xl" overflow="hidden" w="full"
+                    border="2px solid" borderColor={`${s.color}.500`}>
                     <Box bg={`${s.color}.600`} px={4} py={2}>
                       <Text fontWeight="bold" fontSize="sm">{s.emoji} {s.label.toUpperCase()}</Text>
                     </Box>
@@ -141,7 +141,7 @@ export default function BarStaffScreen() {
                           )
                         })}
                       </VStack>
-                      {m.notes && <Text fontSize="xs" color="gray.400" mt={2}>📝 {m.notes}</Text>}
+                      {m.notes && <Text fontSize="xs" color="app.textSecondary" mt={2}>📝 {m.notes}</Text>}
                     </Box>
                   </Box>
                 )
@@ -155,12 +155,12 @@ export default function BarStaffScreen() {
         {/* DONE */}
         {done.length > 0 && (
           <Box>
-            <Text fontWeight="bold" fontSize="sm" color="gray.500" mb={3}>EARLIER TODAY</Text>
+            <Text fontWeight="bold" fontSize="sm" color="app.textMuted" mb={3}>EARLIER TODAY</Text>
             <VStack spacing={2}>
               {done.slice(0, 5).map(m => {
                 const s = STATUS_TEXT[m.status] ?? { label: m.status, color: 'gray', emoji: '•' }
                 return (
-                  <Box key={m.id} bg="gray.800" borderRadius="xl" px={4} py={3} w="full" opacity={0.6}>
+                  <Box key={m.id} bg="app.surface" borderRadius="xl" px={4} py={3} w="full" opacity={0.6}>
                     <HStack justify="space-between">
                       <Text fontSize="sm">
                       {s.emoji} {m.lines.map(l => {
@@ -183,8 +183,8 @@ export default function BarStaffScreen() {
       {/* REQUEST MODAL */}
       <Modal isOpen={isOpen} onClose={onClose} size="full">
         <ModalOverlay />
-        <ModalContent bg="gray.900" color="white" m={0} borderRadius={0}>
-          <ModalHeader borderBottom="1px" borderColor="gray.700">
+        <ModalContent bg="app.bg" color="app.textPrimary" m={0} borderRadius={0}>
+          <ModalHeader borderBottom="1px solid" borderColor="app.border">
             Request Stock
             <ModalCloseButton />
           </ModalHeader>
@@ -192,11 +192,11 @@ export default function BarStaffScreen() {
             <VStack align="stretch" spacing={5} pt={2}>
               {activeBars.length > 1 && (
                 <FormControl>
-                  <FormLabel fontSize="sm" color="gray.400">YOUR BAR</FormLabel>
+                  <FormLabel fontSize="sm" color="app.textSecondary">YOUR BAR</FormLabel>
                   <Select
                     value={selectedBarId}
                     onChange={e => setSelectedBarId(e.target.value)}
-                    bg="gray.800" borderColor="gray.600" size="lg" borderRadius="xl"
+                    bg="app.surface" borderColor="app.borderStrong" size="lg" borderRadius="xl"
                   >
                     <option value="">Select your bar...</option>
                     {activeBars.map(b => <option key={b.id} value={b.id}>{b.name} — {b.event.name}</option>)}
@@ -206,19 +206,19 @@ export default function BarStaffScreen() {
 
               {Object.entries(byCategory).map(([cat, prods]) => (
                 <Box key={cat}>
-                  <Text fontSize="xs" color="gray.400" textTransform="uppercase" fontWeight="bold" mb={2}>{cat}</Text>
+                  <Text fontSize="xs" color="app.textSecondary" textTransform="uppercase" fontWeight="bold" mb={2}>{cat}</Text>
                   <VStack spacing={2}>
                     {prods.map(p => (
-                      <HStack key={p.id} bg="gray.800" borderRadius="xl" px={4} py={3} w="full" justify="space-between">
+                      <HStack key={p.id} bg="app.surface" borderRadius="xl" px={4} py={3} w="full" justify="space-between">
                         <Text fontWeight="semibold">{p.name}</Text>
                         <NumberInput
                           min={0} size="md" w="110px" value={quantities[p.id] ?? 0}
                           onChange={(_, v) => setQuantities(prev => ({ ...prev, [p.id]: isNaN(v) ? 0 : v }))}
                         >
-                          <NumberInputField bg="gray.700" borderColor="gray.600" textAlign="center" fontSize="lg" fontWeight="bold" />
+                          <NumberInputField bg="app.overlay" borderColor="app.borderStrong" textAlign="center" fontSize="lg" fontWeight="bold" />
                           <NumberInputStepper>
-                            <NumberIncrementStepper borderColor="gray.600" />
-                            <NumberDecrementStepper borderColor="gray.600" />
+                            <NumberIncrementStepper borderColor="app.borderStrong" />
+                            <NumberDecrementStepper borderColor="app.borderStrong" />
                           </NumberInputStepper>
                         </NumberInput>
                       </HStack>
@@ -228,17 +228,17 @@ export default function BarStaffScreen() {
               ))}
 
               <FormControl>
-                <FormLabel fontSize="sm" color="gray.400">NOTE (optional)</FormLabel>
+                <FormLabel fontSize="sm" color="app.textSecondary">NOTE (optional)</FormLabel>
                 <Textarea
                   value={notes} onChange={e => setNotes(e.target.value)}
-                  bg="gray.800" borderColor="gray.600" borderRadius="xl"
+                  bg="app.surface" borderColor="app.borderStrong" borderRadius="xl"
                   placeholder="e.g. very low on Castle, urgent"
                   rows={2}
                 />
               </FormControl>
             </VStack>
           </ModalBody>
-          <ModalFooter borderTop="1px" borderColor="gray.700">
+          <ModalFooter borderTop="1px" borderColor="app.border">
             <Button
               w="full" size="lg" colorScheme="brand" borderRadius="xl"
               h="60px" fontSize="lg" fontWeight="black"

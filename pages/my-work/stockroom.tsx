@@ -87,16 +87,16 @@ export default function StockRoomScreen() {
   const shortfallLines = pendingMovement ? getShortfalls(pendingMovement) : []
 
   return (
-    <Box minH="100vh" bg="gray.900" color="white" pb="80px">
+    <Box minH="100vh" bg="app.bg" color="app.textPrimary" pb="80px">
       <AdminPreviewBanner roleLabel="Stock Room Staff" color="blue" />
 
-      <Box bg="gray.800" px={4} py={4} borderBottom="1px" borderColor="gray.700">
+      <Box bg="rgba(13,15,20,0.95)" px={4} py={4} borderBottom="1px solid" borderColor="app.border" position="sticky" top={0} zIndex={10}>
         <HStack justify="space-between">
           <VStack align="start" spacing={0}>
-            <Text fontSize="xs" color="gray.400">Logged in as</Text>
+            <Text fontSize="xs" color="app.textSecondary">Logged in as</Text>
             <Heading size="md">🗄️ {name}</Heading>
           </VStack>
-          <Button size="sm" variant="ghost" color="gray.400" onClick={() => signOut({ callbackUrl: '/login' })}>
+          <Button size="sm" variant="ghost" color="app.textSecondary" onClick={() => signOut({ callbackUrl: '/login' })}>
             Sign out
           </Button>
         </HStack>
@@ -113,10 +113,10 @@ export default function StockRoomScreen() {
         </HStack>
 
         {movements.length === 0 && !isLoading && (
-          <Box bg="gray.800" borderRadius="2xl" p={8} textAlign="center">
+          <Box bg="app.surface" borderRadius="2xl" p={8} textAlign="center">
             <Text fontSize="3xl" mb={2}>✅</Text>
-            <Text color="gray.400" fontSize="lg">Queue is clear</Text>
-            <Text color="gray.500" fontSize="sm">Nothing to prep right now</Text>
+            <Text color="app.textSecondary" fontSize="lg">Queue is clear</Text>
+            <Text color="app.textMuted" fontSize="sm">Nothing to prep right now</Text>
           </Box>
         )}
 
@@ -127,7 +127,7 @@ export default function StockRoomScreen() {
           const allZero = m.lines.every(l => getActual(m.id, l.id, l.quantityRequested) === 0)
 
           return (
-            <Box key={m.id} bg="gray.800" borderRadius="2xl" overflow="hidden" border="2px"
+            <Box key={m.id} bg="app.surface" borderRadius="2xl" overflow="hidden" border="2px"
               borderColor={hasShortfall ? 'orange.500' : 'blue.500'}>
 
               {/* Card header */}
@@ -145,7 +145,7 @@ export default function StockRoomScreen() {
               </Box>
 
               <Box px={4} py={3}>
-                <Text fontSize="xs" color="gray.400" mb={3}>
+                <Text fontSize="xs" color="app.textSecondary" mb={3}>
                   Requested by {m.createdBy.name} — enter how many you can actually send:
                 </Text>
 
@@ -168,8 +168,8 @@ export default function StockRoomScreen() {
                               {line.product.name}
                             </Text>
                             <HStack spacing={2}>
-                              <Text fontSize="xs" color="gray.400">
-                                Requested: <Text as="span" fontWeight="bold" color="white">{line.quantityRequested}</Text>
+                              <Text fontSize="xs" color="app.textSecondary">
+                                Requested: <Text as="span" fontWeight="bold" color="app.textPrimary">{line.quantityRequested}</Text>
                               </Text>
                               {isShort && (
                                 <Badge colorScheme={isEmpty ? 'red' : 'orange'} fontSize="xs">
@@ -179,7 +179,7 @@ export default function StockRoomScreen() {
                             </HStack>
                           </VStack>
                           <VStack align="end" spacing={1}>
-                            <Text fontSize="xs" color="gray.400">Sending</Text>
+                            <Text fontSize="xs" color="app.textSecondary">Sending</Text>
                             <NumberInput
                               size="md" min={0} max={line.quantityRequested} w="90px"
                               value={actual}
@@ -193,8 +193,8 @@ export default function StockRoomScreen() {
                                 px={2}
                               />
                               <NumberInputStepper>
-                                <NumberIncrementStepper borderColor="gray.600" />
-                                <NumberDecrementStepper borderColor="gray.600" />
+                                <NumberIncrementStepper borderColor="app.borderStrong" />
+                                <NumberDecrementStepper borderColor="app.borderStrong" />
                               </NumberInputStepper>
                             </NumberInput>
                           </VStack>
@@ -229,15 +229,15 @@ export default function StockRoomScreen() {
       {/* Shortfall confirmation modal */}
       <Modal isOpen={isOpen} onClose={onClose} isCentered size="md">
         <ModalOverlay bg="rgba(0,0,0,0.7)" backdropFilter="blur(4px)" />
-        <ModalContent bg="gray.800" border="1px" borderColor="orange.500" color="white" mx={4}>
-          <ModalHeader borderBottom="1px" borderColor="gray.700">
+        <ModalContent bg="app.surface" border="1px solid" borderColor="orange.500" color="app.textPrimary" mx={4}>
+          <ModalHeader borderBottom="1px solid" borderColor="app.border">
             <HStack>
               <Text>⚠️</Text>
               <Text>Partial Stock — Shortfall</Text>
             </HStack>
           </ModalHeader>
           <ModalBody py={4}>
-            <Text fontSize="sm" color="gray.300" mb={4}>
+            <Text fontSize="sm" color="app.textPrimary" mb={4}>
               You can't fully fulfil this order. These items will be short:
             </Text>
             <VStack align="stretch" spacing={2} mb={4}>
@@ -245,10 +245,10 @@ export default function StockRoomScreen() {
                 const actual = getActual(pendingMovement!.id, line.id, line.quantityRequested)
                 const shortfall = line.quantityRequested - actual
                 return (
-                  <HStack key={line.id} bg="gray.700" borderRadius="lg" px={3} py={2} justify="space-between">
+                  <HStack key={line.id} bg="app.overlay" borderRadius="lg" px={3} py={2} justify="space-between">
                     <Text fontWeight="semibold">{line.product.name}</Text>
                     <HStack spacing={3}>
-                      <Text fontSize="sm" color="gray.400">
+                      <Text fontSize="sm" color="app.textSecondary">
                         Sending <Text as="span" color="orange.300" fontWeight="bold">{actual}</Text> of {line.quantityRequested}
                       </Text>
                       <Badge colorScheme="red" fontSize="xs">{shortfall} short</Badge>
@@ -257,11 +257,11 @@ export default function StockRoomScreen() {
                 )
               })}
             </VStack>
-            <Text fontSize="sm" color="gray.400">
+            <Text fontSize="sm" color="app.textSecondary">
               Do you want to automatically create a new <Text as="span" color="yellow.300" fontWeight="bold">follow-up request</Text> for the missing items so the bar still gets them when stock becomes available?
             </Text>
           </ModalBody>
-          <ModalFooter borderTop="1px" borderColor="gray.700" gap={2} flexDir="column">
+          <ModalFooter borderTop="1px" borderColor="app.border" gap={2} flexDir="column">
             <Button
               w="full" colorScheme="orange" fontWeight="black" h="52px"
               onClick={() => confirmReady(pendingMovement!, true)}
@@ -274,7 +274,7 @@ export default function StockRoomScreen() {
             >
               Send partial only — no follow-up
             </Button>
-            <Button w="full" variant="ghost" size="sm" color="gray.500" onClick={onClose}>
+            <Button w="full" variant="ghost" size="sm" color="app.textMuted" onClick={onClose}>
               Cancel — go back and adjust
             </Button>
           </ModalFooter>

@@ -39,16 +39,16 @@ export default function RunnerScreen() {
   }
 
   return (
-    <Box minH="100vh" bg="gray.900" color="white" pb="80px">
+    <Box minH="100vh" bg="app.bg" color="app.textPrimary" pb="80px">
       <AdminPreviewBanner roleLabel="Runner" color="orange" />
       {/* Header */}
-      <Box bg="gray.800" px={4} py={4} borderBottom="1px" borderColor="gray.700">
+      <Box bg="rgba(13,15,20,0.95)" px={4} py={4} borderBottom="1px solid" borderColor="app.border" position="sticky" top={0} zIndex={10}>
         <HStack justify="space-between">
           <VStack align="start" spacing={0}>
-            <Text fontSize="xs" color="gray.400">Logged in as</Text>
+            <Text fontSize="xs" color="app.textSecondary">Logged in as</Text>
             <Heading size="md">🏃 {name}</Heading>
           </VStack>
-          <Button size="sm" variant="ghost" color="gray.400" onClick={() => signOut({ callbackUrl: '/login' })}>
+          <Button size="sm" variant="ghost" color="app.textSecondary" onClick={() => signOut({ callbackUrl: '/login' })}>
             Sign out
           </Button>
         </HStack>
@@ -68,14 +68,14 @@ export default function RunnerScreen() {
           </HStack>
 
           {toCollect.length === 0 ? (
-            <Box bg="gray.800" borderRadius="2xl" p={5} textAlign="center">
-              <Text color="gray.500" fontSize="lg">Nothing to collect right now</Text>
+            <Box bg="app.surface" borderRadius="2xl" p={5} textAlign="center">
+              <Text color="app.textMuted" fontSize="lg">Nothing to collect right now</Text>
             </Box>
           ) : (
             <VStack spacing={3}>
               {toCollect.map(m => (
-                <Box key={m.id} bg="gray.800" borderRadius="2xl" overflow="hidden" w="full"
-                  border="2px" borderColor="orange.500">
+                <Box key={m.id} bg="app.surface" borderRadius="2xl" overflow="hidden" w="full"
+                  border="2px solid" borderColor="orange.500">
                   <Box bg="orange.500" px={4} py={2}>
                     <Text fontWeight="bold" fontSize="sm">
                       COLLECT FROM: {m.fromBar?.name ?? 'Central Store'}
@@ -85,9 +85,9 @@ export default function RunnerScreen() {
                     )}
                   </Box>
                   <Box px={4} py={3}>
-                    <Text fontSize="xs" color="gray.400" mb={2}>
-                      DELIVER TO: <Text as="span" fontWeight="bold" color="white">{m.toBar?.name ?? '—'}</Text>
-                      {m.toBar?.location && <Text as="span" color="gray.400"> · {m.toBar.location}</Text>}
+                    <Text fontSize="xs" color="app.textSecondary" mb={2}>
+                      DELIVER TO: <Text as="span" fontWeight="bold" color="app.textPrimary">{m.toBar?.name ?? '—'}</Text>
+                      {m.toBar?.location && <Text as="span" color="app.textSecondary"> · {m.toBar.location}</Text>}
                     </Text>
                     <VStack align="start" spacing={1} mb={4}>
                       {m.lines.map(line => (
@@ -117,7 +117,7 @@ export default function RunnerScreen() {
           )}
         </Box>
 
-        <Divider borderColor="gray.700" />
+        <Divider borderColor="app.border" />
 
         {/* DELIVER SECTION */}
         <Box>
@@ -129,14 +129,14 @@ export default function RunnerScreen() {
           </HStack>
 
           {toDeliver.length === 0 ? (
-            <Box bg="gray.800" borderRadius="2xl" p={5} textAlign="center">
-              <Text color="gray.500" fontSize="lg">Nothing to deliver right now</Text>
+            <Box bg="app.surface" borderRadius="2xl" p={5} textAlign="center">
+              <Text color="app.textMuted" fontSize="lg">Nothing to deliver right now</Text>
             </Box>
           ) : (
             <VStack spacing={3}>
               {toDeliver.map(m => (
-                <Box key={m.id} bg="gray.800" borderRadius="2xl" overflow="hidden" w="full"
-                  border="2px" borderColor="green.500">
+                <Box key={m.id} bg="app.surface" borderRadius="2xl" overflow="hidden" w="full"
+                  border="2px solid" borderColor="green.500">
                   <Box bg="green.600" px={4} py={2}>
                     <Text fontWeight="bold" fontSize="sm">
                       DELIVER TO: {m.toBar?.name ?? '—'}

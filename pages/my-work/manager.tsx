@@ -32,15 +32,15 @@ export default function ManagerScreen() {
   }
 
   return (
-    <Box minH="100vh" bg="gray.900" color="white" pb="80px">
+    <Box minH="100vh" bg="app.bg" color="app.textPrimary" pb="80px">
       <AdminPreviewBanner roleLabel="Section Manager" color="yellow" />
-      <Box bg="gray.800" px={4} py={4} borderBottom="1px" borderColor="gray.700">
+      <Box bg="rgba(13,15,20,0.95)" px={4} py={4} borderBottom="1px solid" borderColor="app.border" position="sticky" top={0} zIndex={10}>
         <HStack justify="space-between">
           <VStack align="start" spacing={0}>
-            <Text fontSize="xs" color="gray.400">Logged in as</Text>
+            <Text fontSize="xs" color="app.textSecondary">Logged in as</Text>
             <Heading size="md">👔 {name}</Heading>
           </VStack>
-          <Button size="sm" variant="ghost" color="gray.400" onClick={() => signOut({ callbackUrl: '/login' })}>
+          <Button size="sm" variant="ghost" color="app.textSecondary" onClick={() => signOut({ callbackUrl: '/login' })}>
             Sign out
           </Button>
         </HStack>
@@ -57,10 +57,10 @@ export default function ManagerScreen() {
         </HStack>
 
         {movements.length === 0 && !isLoading && (
-          <Box bg="gray.800" borderRadius="2xl" p={8} textAlign="center">
+          <Box bg="app.surface" borderRadius="2xl" p={8} textAlign="center">
             <Text fontSize="3xl" mb={2}>✅</Text>
-            <Text color="gray.400" fontSize="lg">All clear</Text>
-            <Text color="gray.500" fontSize="sm">No requests waiting for approval</Text>
+            <Text color="app.textSecondary" fontSize="lg">All clear</Text>
+            <Text color="app.textMuted" fontSize="sm">No requests waiting for approval</Text>
           </Box>
         )}
 
@@ -68,7 +68,7 @@ export default function ManagerScreen() {
           const timeAgo = Math.round((Date.now() - new Date(m.createdAt).getTime()) / 60000)
           const isActing = acting?.id === m.id
           return (
-            <Box key={m.id} bg="gray.800" borderRadius="2xl" overflow="hidden" border="2px" borderColor="yellow.500">
+            <Box key={m.id} bg="app.surface" borderRadius="2xl" overflow="hidden" border="2px solid" borderColor="yellow.500">
               <Box bg="yellow.600" px={4} py={2}>
                 <HStack justify="space-between">
                   <Text fontWeight="bold" color="gray.900">
@@ -81,7 +81,7 @@ export default function ManagerScreen() {
                 )}
               </Box>
               <Box px={4} py={3}>
-                <Text fontSize="xs" color="gray.400" mb={3}>Requested by {m.createdBy.name}</Text>
+                <Text fontSize="xs" color="app.textSecondary" mb={3}>Requested by {m.createdBy.name}</Text>
                 <VStack align="start" spacing={1} mb={3}>
                   {m.lines.map(line => (
                     <HStack key={line.id}>
