@@ -23,7 +23,7 @@ export default function NewBarPage() {
   const { register, handleSubmit, formState: { isSubmitting } } = useForm<FormData>()
   const toast = useToast()
 
-  const managers = users.filter((u) => ['ADMIN', 'BAR_MANAGER'].includes(u.role))
+  const managers = users.filter((u) => ['ADMIN', 'SECTION_MANAGER'].includes(u.role))
 
   const onSubmit = async (data: FormData) => {
     const res = await fetch(`/api/events/${eventId}/bars`, {

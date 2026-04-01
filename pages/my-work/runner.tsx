@@ -1,5 +1,6 @@
 import { Box, Button, Heading, HStack, Text, VStack, Badge, Divider, Spinner, Center } from '@chakra-ui/react'
 import { signOut, useSession } from 'next-auth/react'
+import AdminPreviewBanner from '@/components/common/AdminPreviewBanner'
 import { requireAuth } from '@/lib/permissions'
 import type { GetServerSideProps } from 'next'
 import useSWR, { mutate } from 'swr'
@@ -39,6 +40,7 @@ export default function RunnerScreen() {
 
   return (
     <Box minH="100vh" bg="gray.900" color="white" pb="80px">
+      <AdminPreviewBanner roleLabel="Runner" color="orange" />
       {/* Header */}
       <Box bg="gray.800" px={4} py={4} borderBottom="1px" borderColor="gray.700">
         <HStack justify="space-between">

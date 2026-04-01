@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
 import { prisma } from '@/lib/prisma'
 import { getSessionOrUnauthorized, requireRole } from '@/lib/permissions'
+import { audit } from '@/lib/audit'
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   const session = await getSessionOrUnauthorized(req, res)
@@ -26,7 +27,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   if (req.method === 'PATCH') {
     if (!requireRole(res, session, ['ADMIN'])) return
+    const userId = Number((session.user as any).id)
     const { name, date, venue, notes, status } = req.body
+    const before = await prisma.event.findUnique({ where: { id: eventId }, select: { status: true } })
     const event = await prisma.event.update({
       where: { id: eventId },
       data: {
@@ -37,6 +40,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         ...(status && { status }),
       },
     })
+    if (status && before?.status !== status) {
+      audit(userId, 'event.status_changed', 'Event', eventId, { from: before?.status, to: status })
+    }
     return res.json(event)
   }
 

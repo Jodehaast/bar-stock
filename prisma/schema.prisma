@@ -19,6 +19,7 @@ model User {
   managedBars       Bar[]
   createdMovements  StockMovement[] @relation("CreatedBy")
   approvedMovements StockMovement[] @relation("ApprovedBy")
+  auditLogs         AuditLog[]
 }
 
 model Event {
@@ -56,6 +57,7 @@ model Bar {
   outboundMovements StockMovement[] @relation("FromBar")
   inboundMovements  StockMovement[] @relation("ToBar")
   confirmations     BarStockConfirmation[]
+  closingCounts     BarClosingCount[]
 
   @@unique([eventId, name])
 }
@@ -90,6 +92,7 @@ model Product {
   movementLines MovementLine[]
   centralStock  EventCentralStock[]
   confirmations BarStockConfirmation[]
+  closingCounts BarClosingCount[]
 }
 
 model EventProduct {
@@ -170,4 +173,32 @@ model EventCentralStock {
   product Product @relation(fields: [productId], references: [id])
 
   @@unique([eventId, productId])
+}
+
+model AuditLog {
+  id         Int      @id @default(autoincrement())
+  userId     Int
+  action     String   // e.g. "event.status_changed", "movement.approved"
+  entityType String   // e.g. "Event", "StockMovement"
+  entityId   Int
+  detail     String?  // JSON string with before/after or context
+  createdAt  DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+}
+
+model BarClosingCount {
+  id              Int      @id @default(autoincrement())
+  barId           Int
+  productId       Int
+  closingQuantity Int      @default(0)
+  closingTots     Int      @default(0)
+  countedBy       String?
+  notes           String?
+  submittedAt     DateTime @default(now())
+
+  bar     Bar     @relation(fields: [barId],     references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id])
+
+  @@unique([barId, productId])
 }

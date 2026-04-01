@@ -17,12 +17,14 @@ interface InventoryItem {
   product: Product
 }
 interface Confirmation { productId: number; confirmedQuantity: number; confirmedTots: number; confirmedBy: string | null; confirmedAt: string }
+interface ClosingCount { productId: number; closingQuantity: number; closingTots: number; countedBy: string | null; submittedAt: string }
 interface BarData {
   id: number; name: string; location: string | null; responsibleCompany: string | null
   barType: string; stockType: string; status: string; accessToken: string
   event: { id: number; name: string; venue: string; status: string }
   inventory: InventoryItem[]
   confirmations: Confirmation[]
+  closingCounts: ClosingCount[]
 }
 
 const STATUS_LABELS: Record<string, { label: string; color: string }> = {
@@ -48,6 +50,10 @@ export default function BarPublicPage() {
   const [confirmQty, setConfirmQty] = useState<Record<number, number>>({})
   const [confirmTots, setConfirmTots] = useState<Record<number, number>>({})
   const [notes, setNotes] = useState('')
+  const [closingQty, setClosingQty] = useState<Record<number, number>>({})
+  const [closingTots, setClosingTots] = useState<Record<number, number>>({})
+  const [closingSubmitting, setClosingSubmitting] = useState(false)
+  const [closingDone, setClosingDone] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [confirmSubmitting, setConfirmSubmitting] = useState(false)
   const [submitted, setSubmitted] = useState(false)
@@ -136,6 +142,32 @@ export default function BarPublicPage() {
   const confirmedMap: Record<number, Confirmation> = {}
   bar.confirmations.forEach(c => { confirmedMap[c.productId] = c })
 
+  const closingMap: Record<number, ClosingCount> = {}
+  bar.closingCounts.forEach(c => { closingMap[c.productId] = c })
+  const hasClosingCount = bar.closingCounts.length > 0
+
+  const submitClosingCount = async () => {
+    const lines = bar.inventory.map(i => ({
+      productId: i.product.id,
+      closingQuantity: closingQty[i.product.id] ?? closingMap[i.product.id]?.closingQuantity ?? i.currentQuantity,
+      closingTots: closingTots[i.product.id] ?? 0,
+    }))
+    setClosingSubmitting(true)
+    const res = await fetch(`/api/b/${token}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ type: 'CLOSING_COUNT', lines, confirmedBy: yourName }),
+    })
+    setClosingSubmitting(false)
+    if (res.ok) {
+      setClosingDone(true)
+      mutate(`/api/b/${token}`)
+      toast({ title: '✅ Closing count saved!', status: 'success', duration: 3000 })
+    } else {
+      toast({ title: 'Error saving closing count', status: 'error', duration: 3000 })
+    }
+  }
+
   return (
     <Box minH="100vh" bg="app.bg">
       {/* Header */}
@@ -191,13 +223,17 @@ export default function BarPublicPage() {
           </Alert>
         ) : (
           <Tabs variant="soft-rounded" colorScheme="yellow" isFitted>
-            <TabList bg="app.surface" borderRadius="xl" p={1} border="1px solid" borderColor="app.border" mb={4}>
+            <TabList bg="app.surface" borderRadius="xl" p={1} border="1px solid" borderColor="app.border" mb={4} flexWrap="wrap">
               <Tab fontSize="sm" fontWeight="600" _selected={{ bg: 'brand.400', color: 'gray.900' }}>
                 📦 Request Stock
               </Tab>
               <Tab fontSize="sm" fontWeight="600" _selected={{ bg: 'brand.400', color: 'gray.900' }}>
-                ✅ Confirm Opening
+                ✅ Opening Count
                 {hasConfirmed && <Badge ml={1} colorScheme="green" fontSize="9px">Done</Badge>}
+              </Tab>
+              <Tab fontSize="sm" fontWeight="600" _selected={{ bg: 'brand.400', color: 'gray.900' }}>
+                🔒 Closing Count
+                {hasClosingCount && <Badge ml={1} colorScheme="orange" fontSize="9px">Done</Badge>}
               </Tab>
               <Tab fontSize="sm" fontWeight="600" _selected={{ bg: 'brand.400', color: 'gray.900' }}>
                 📋 My Requests
@@ -350,6 +386,100 @@ export default function BarPublicPage() {
                     </Button>
                   </Box>
                 </Box>
+              </TabPanel>
+
+              {/* ── CLOSING COUNT ── */}
+              <TabPanel p={0}>
+                {(closingDone || hasClosingCount) && (
+                  <Alert status="success" borderRadius="xl" mb={4} bg="rgba(34,197,94,0.1)" border="1px solid" borderColor="rgba(34,197,94,0.3)">
+                    <AlertIcon color="green.400" />
+                    <VStack align="start" spacing={0}>
+                      <Text color="green.300" fontWeight="700">Closing count submitted ✓</Text>
+                      {bar.closingCounts[0]?.countedBy && (
+                        <Text color="green.400" fontSize="xs">by {bar.closingCounts[0].countedBy}</Text>
+                      )}
+                    </VStack>
+                  </Alert>
+                )}
+
+                {!hasOpeningStock ? (
+                  <Alert status="info" borderRadius="xl" bg="app.surface" border="1px solid" borderColor="app.border">
+                    <AlertIcon />
+                    <Text color="app.textSecondary" fontSize="sm">No stock allocated to this bar yet.</Text>
+                  </Alert>
+                ) : (
+                  <Box bg="app.surface" borderRadius="xl" border="1px solid" borderColor="app.border" overflow="hidden">
+                    <Box px={4} py={3} borderBottom="1px solid" borderColor="app.border">
+                      <Text fontWeight="700" color="app.textPrimary">End-of-night stock count</Text>
+                      <Text fontSize="xs" color="app.textMuted">
+                        Count what's physically remaining. We'll calculate what was consumed.
+                      </Text>
+                    </Box>
+                    <VStack spacing={0} divider={<Divider borderColor="app.border" />}>
+                      {bar.inventory.map(item => {
+                        const systemOnHand = item.currentQuantity
+                        const entered = closingQty[item.product.id] ?? closingMap[item.product.id]?.closingQuantity ?? systemOnHand
+                        const consumed = systemOnHand - entered
+                        return (
+                          <Box key={item.product.id} px={4} py={3} w="full">
+                            <HStack justify="space-between" mb={2}>
+                              <VStack align="start" spacing={0}>
+                                <Text fontSize="sm" fontWeight="600" color="app.textPrimary">{item.product.name}</Text>
+                                <Text fontSize="xs" color="app.textMuted">
+                                  System on hand: <Text as="span" color="brand.400" fontWeight="700">{systemOnHand}</Text> {item.product.unit}s
+                                </Text>
+                              </VStack>
+                              {consumed !== 0 && (
+                                <Badge colorScheme={consumed > 0 ? 'orange' : 'blue'} fontSize="xs">
+                                  {consumed > 0 ? `${consumed} used` : `${Math.abs(consumed)} extra`}
+                                </Badge>
+                              )}
+                            </HStack>
+                            <Grid templateColumns={item.product.totsPerBottle ? '1fr 1fr' : '1fr'} gap={2}>
+                              <Box>
+                                <Text fontSize="xs" color="app.textMuted" mb={1}>Bottles / units remaining</Text>
+                                <NumberInput
+                                  min={0} max={9999} size="sm"
+                                  value={closingQty[item.product.id] ?? closingMap[item.product.id]?.closingQuantity ?? systemOnHand}
+                                  onChange={(_, v) => setClosingQty(prev => ({ ...prev, [item.product.id]: isNaN(v) ? 0 : v }))}
+                                >
+                                  <NumberInputField borderColor="app.border" bg="app.overlay" color="app.textPrimary" />
+                                </NumberInput>
+                              </Box>
+                              {item.product.totsPerBottle && (
+                                <Box>
+                                  <Text fontSize="xs" color="app.textMuted" mb={1}>Extra tots remaining</Text>
+                                  <NumberInput
+                                    min={0} max={item.product.totsPerBottle - 1} size="sm"
+                                    value={closingTots[item.product.id] ?? closingMap[item.product.id]?.closingTots ?? 0}
+                                    onChange={(_, v) => setClosingTots(prev => ({ ...prev, [item.product.id]: isNaN(v) ? 0 : v }))}
+                                  >
+                                    <NumberInputField borderColor="app.border" bg="app.overlay" color="app.textPrimary" />
+                                  </NumberInput>
+                                </Box>
+                              )}
+                            </Grid>
+                          </Box>
+                        )
+                      })}
+                    </VStack>
+                    <Box px={4} py={3} borderTop="1px solid" borderColor="app.border">
+                      <Button
+                        w="full"
+                        size="lg"
+                        bg="orange.500"
+                        color="white"
+                        fontWeight="700"
+                        _hover={{ bg: 'orange.400' }}
+                        isLoading={closingSubmitting}
+                        loadingText="Saving…"
+                        onClick={submitClosingCount}
+                      >
+                        🔒 Submit Closing Count
+                      </Button>
+                    </Box>
+                  </Box>
+                )}
               </TabPanel>
 
               {/* ── MY REQUESTS ── */}

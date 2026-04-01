@@ -1,5 +1,5 @@
 import {
-  Box, Button, Grid, Heading, HStack, Text, VStack, Badge,
+  Box, Button, Grid, Heading, HStack, Text, VStack, Badge, Collapse,
   Select, useToast, Divider, Breadcrumb, BreadcrumbItem, BreadcrumbLink,
 } from '@chakra-ui/react'
 import { AddIcon, ChevronRightIcon } from '@chakra-ui/icons'
@@ -12,6 +12,7 @@ import { requireAuth, isAdmin, canApproveMovements } from '@/lib/permissions'
 import type { GetServerSideProps } from 'next'
 import useSWR, { mutate } from 'swr'
 import { useSession } from 'next-auth/react'
+import { useState } from 'react'
 
 interface Bar {
   id: number; name: string; location: string | null; status: string; stockType: string; barType: string
@@ -25,6 +26,11 @@ interface Event {
   bars: Bar[]
 }
 
+interface LowStockItem {
+  barId: number; barName: string; productName: string; productUnit: string
+  openingQuantity: number; currentQuantity: number; percentRemaining: number
+}
+
 export default function EventDashboard() {
   const router = useRouter()
   const eventId = router.query.eventId
@@ -33,6 +39,11 @@ export default function EventDashboard() {
   const toast = useToast()
   const admin = isAdmin(session)
   const canApprove = canApproveMovements(session)
+  const [showLowStock, setShowLowStock] = useState(true)
+  const { data: lowStockItems = [] } = useSWR<LowStockItem[]>(
+    eventId && event?.status === 'ACTIVE' ? `/api/events/${eventId}/low-stock` : null,
+    { refreshInterval: 30000 }
+  )
 
   const updateStatus = async (status: string) => {
     if (!confirm(`Set event status to ${status}?`)) return
@@ -122,6 +133,9 @@ export default function EventDashboard() {
           <Button as={NextLink} href={`/events/${eventId}/reconciliation`} size="sm" variant="outline">
             Reconciliation
           </Button>
+          <Button as={NextLink} href={`/events/${eventId}/reports`} size="sm" variant="outline">
+            📈 Reports
+          </Button>
           <Button as={NextLink} href={`/events/${eventId}/central-stock`} size="sm" variant="outline">
             Central Store
           </Button>
@@ -136,6 +150,44 @@ export default function EventDashboard() {
             </Button>
           )}
         </HStack>
+
+        {/* Low stock alerts */}
+        {lowStockItems.length > 0 && (
+          <Box border="1px" borderColor="orange.600" borderRadius="xl" overflow="hidden">
+            <HStack
+              bg="orange.900" px={4} py={3} justify="space-between" cursor="pointer"
+              onClick={() => setShowLowStock((v) => !v)}
+            >
+              <HStack>
+                <Text>⚠️</Text>
+                <Text fontWeight="bold" color="orange.200">
+                  Low Stock Alert — {lowStockItems.length} item{lowStockItems.length !== 1 ? 's' : ''} running low
+                </Text>
+              </HStack>
+              <Text fontSize="xs" color="orange.400">{showLowStock ? 'Hide' : 'Show'}</Text>
+            </HStack>
+            <Collapse in={showLowStock}>
+              <VStack align="stretch" spacing={0} divider={<Box borderBottom="1px" borderColor="gray.700" />}>
+                {lowStockItems.map((item, i) => (
+                  <HStack key={i} px={4} py={2} bg="gray.800" justify="space-between" wrap="wrap" gap={2}>
+                    <VStack align="start" spacing={0}>
+                      <Text fontWeight="semibold" fontSize="sm">{item.productName}</Text>
+                      <Text fontSize="xs" color="gray.400">{item.barName}</Text>
+                    </VStack>
+                    <HStack>
+                      <Text fontSize="sm" color="orange.300" fontWeight="bold">
+                        {item.currentQuantity} / {item.openingQuantity} {item.productUnit}s
+                      </Text>
+                      <Badge colorScheme={item.percentRemaining === 0 ? 'red' : 'orange'} fontSize="xs">
+                        {item.percentRemaining}% left
+                      </Badge>
+                    </HStack>
+                  </HStack>
+                ))}
+              </VStack>
+            </Collapse>
+          </Box>
+        )}
 
         {/* Stock Rooms section */}
         {stockRooms.length > 0 && (

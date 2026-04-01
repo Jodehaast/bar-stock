@@ -2,6 +2,7 @@ import type { NextApiRequest, NextApiResponse } from 'next'
 import { prisma } from '@/lib/prisma'
 import { getSessionOrUnauthorized } from '@/lib/permissions'
 import { applyMovementToInventory } from '@/lib/inventory'
+import { audit } from '@/lib/audit'
 
 // PENDING → APPROVED/REJECTED (by SECTION_MANAGER or ADMIN)
 // APPROVED → READY (by STOCK_ROOM_STAFF or ADMIN)
@@ -113,6 +114,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
       return m
     })
+
+    if (status) {
+      const actionMap: Record<string, string> = {
+        APPROVED: 'movement.approved', REJECTED: 'movement.rejected',
+        READY: 'movement.ready', IN_TRANSIT: 'movement.in_transit', DELIVERED: 'movement.delivered',
+      }
+      const action = actionMap[status]
+      if (action) audit(userId, action as any, 'StockMovement', movementId, { from: movement.status, to: status })
+    }
 
     return res.json(updated)
   }

@@ -174,6 +174,89 @@ async function main() {
   })
   console.log('✓ Stock rooms: Level 5 West, Level 5 East')
 
+  // ─── STOCK ROOM INVENTORY ────────────────────────────
+  // West serves suites 5100W–5105W (6 suites) + North suites
+  // East serves East + South suites
+  // Quantities reflect what was loaded at start of event minus what's been dispatched
+
+  const stockRoomWestStock: { name: string; opening: number; current: number }[] = [
+    { name: 'Castle Lager',      opening: 240, current: 168 }, // 6 x 12 opening + buffer, some dispatched
+    { name: 'Castle Lite',       opening: 240, current: 192 },
+    { name: 'Heineken',          opening: 120, current: 96  },
+    { name: 'Amstel',            opening: 72,  current: 60  },
+    { name: 'Black Label',       opening: 60,  current: 48  },
+    { name: 'Windhoek Draught',  opening: 60,  current: 48  },
+    { name: 'Corona',            opening: 48,  current: 36  },
+    { name: 'Savanna Dry',       opening: 120, current: 84  },
+    { name: 'Hunters Gold',      opening: 72,  current: 60  },
+    { name: 'Flying Fish',       opening: 48,  current: 36  },
+    { name: 'House Red Wine',    opening: 36,  current: 24  },
+    { name: 'House White Wine',  opening: 36,  current: 24  },
+    { name: 'House Rosé',        opening: 24,  current: 18  },
+    { name: 'Klipdrift Brandy',  opening: 12,  current: 9   },
+    { name: 'Jameson Whiskey',   opening: 18,  current: 12  },
+    { name: 'Absolut Vodka',     opening: 12,  current: 8   },
+    { name: 'Bacardi Rum',       opening: 8,   current: 6   },
+    { name: 'Tanqueray Gin',     opening: 12,  current: 7   },
+    { name: 'Coca-Cola',         opening: 240, current: 192 },
+    { name: 'Sprite',            opening: 120, current: 96  },
+    { name: 'Fanta Orange',      opening: 72,  current: 60  },
+    { name: 'Still Water',       opening: 240, current: 204 },
+    { name: 'Sparkling Water',   opening: 96,  current: 84  },
+    { name: 'Tonic Water',       opening: 120, current: 84  },
+    { name: 'Red Bull',          opening: 96,  current: 60  },
+  ]
+
+  const stockRoomEastStock: { name: string; opening: number; current: number }[] = [
+    { name: 'Castle Lager',      opening: 180, current: 156 },
+    { name: 'Castle Lite',       opening: 180, current: 168 },
+    { name: 'Heineken',          opening: 96,  current: 84  },
+    { name: 'Amstel',            opening: 48,  current: 42  },
+    { name: 'Black Label',       opening: 48,  current: 42  },
+    { name: 'Windhoek Draught',  opening: 48,  current: 36  },
+    { name: 'Corona',            opening: 36,  current: 30  },
+    { name: 'Savanna Dry',       opening: 96,  current: 84  },
+    { name: 'Hunters Gold',      opening: 48,  current: 42  },
+    { name: 'Flying Fish',       opening: 36,  current: 30  },
+    { name: 'House Red Wine',    opening: 24,  current: 18  },
+    { name: 'House White Wine',  opening: 24,  current: 18  },
+    { name: 'House Rosé',        opening: 18,  current: 12  },
+    { name: 'Klipdrift Brandy',  opening: 8,   current: 6   },
+    { name: 'Jameson Whiskey',   opening: 12,  current: 9   },
+    { name: 'Absolut Vodka',     opening: 8,   current: 6   },
+    { name: 'Bacardi Rum',       opening: 6,   current: 4   },
+    { name: 'Tanqueray Gin',     opening: 8,   current: 5   },
+    { name: 'Coca-Cola',         opening: 180, current: 156 },
+    { name: 'Sprite',            opening: 96,  current: 84  },
+    { name: 'Fanta Orange',      opening: 60,  current: 54  },
+    { name: 'Still Water',       opening: 180, current: 168 },
+    { name: 'Sparkling Water',   opening: 72,  current: 66  },
+    { name: 'Tonic Water',       opening: 96,  current: 72  },
+    { name: 'Red Bull',          opening: 72,  current: 48  },
+  ]
+
+  for (const item of stockRoomWestStock) {
+    await prisma.barInventory.create({
+      data: {
+        barId: stockRoomWest.id, productId: products[item.name].id,
+        openingQuantity: item.opening, currentQuantity: item.current,
+      },
+    })
+  }
+  for (const item of stockRoomEastStock) {
+    await prisma.barInventory.create({
+      data: {
+        barId: stockRoomEast.id, productId: products[item.name].id,
+        openingQuantity: item.opening, currentQuantity: item.current,
+      },
+    })
+  }
+
+  const westTotal = stockRoomWestStock.reduce((a, b) => a + b.current, 0)
+  const eastTotal = stockRoomEastStock.reduce((a, b) => a + b.current, 0)
+  console.log(`✓ Stock Room West inventory: ${westTotal} units on hand (${stockRoomWestStock.length} SKUs)`)
+  console.log(`✓ Stock Room East inventory: ${eastTotal} units on hand (${stockRoomEastStock.length} SKUs)\n`)
+
   // Sample suites — mix of comp and paid, different companies
   const suites = [
     { name: 'Suite 5100W', location: 'Level 5 – West', company: 'DHL CTS', stockType: 'COMP' },
@@ -425,6 +508,8 @@ async function main() {
   console.log('  • 1 bar with variance ⚠ → Castle Lager short by 2')
   console.log('  • 11 bars pending       → Awaiting confirmation')
   console.log('  • QR codes page         → Print QR sheets for all suites')
+  console.log('  • Stock Room West       → 25 SKUs, partially depleted')
+  console.log('  • Stock Room East       → 25 SKUs, partially depleted')
   console.log('')
 }
 

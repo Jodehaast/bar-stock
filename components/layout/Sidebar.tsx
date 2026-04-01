@@ -2,7 +2,7 @@ import { Box, Flex, Text, Link, HStack, Icon, VStack, Avatar, IconButton, Toolti
 import NextLink from 'next/link'
 import { useRouter } from 'next/router'
 import { useSession, signOut } from 'next-auth/react'
-import { CalendarIcon, BellIcon, SettingsIcon, StarIcon, CheckIcon } from '@chakra-ui/icons'
+import { CalendarIcon, BellIcon, SettingsIcon, StarIcon, CheckIcon, ViewIcon } from '@chakra-ui/icons'
 
 export interface NavItem {
   label: string
@@ -17,6 +17,7 @@ export const NAV_ITEMS: NavItem[] = [
   { label: 'Events',   href: '/events',         icon: CalendarIcon },
   { label: 'Products', href: '/admin/products', icon: StarIcon,     roles: ['ADMIN'] },
   { label: 'Users',    href: '/admin/users',    icon: SettingsIcon, roles: ['ADMIN'] },
+  { label: 'Preview',  href: '/admin/preview',  icon: BellIcon,     roles: ['ADMIN'] },
 ]
 
 const ROLE_LABELS: Record<string, string> = {

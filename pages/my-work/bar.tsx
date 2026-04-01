@@ -10,6 +10,8 @@ import { requireAuth } from '@/lib/permissions'
 import type { GetServerSideProps } from 'next'
 import useSWR, { mutate } from 'swr'
 import { useState } from 'react'
+import { useSSEInbox } from '@/hooks/useSSEInbox'
+import AdminPreviewBanner from '@/components/common/AdminPreviewBanner'
 
 interface Movement {
   id: number; status: string; type: string; notes: string | null; createdAt: string; eventId: number
@@ -32,7 +34,10 @@ const STATUS_TEXT: Record<string, { label: string; color: string; emoji: string 
 export default function BarStaffScreen() {
   const { data: session } = useSession()
   const name = (session?.user as any)?.name ?? 'Bar Staff'
-  const { data: movements = [], isLoading } = useSWR<Movement[]>('/api/inbox?role=BAR_STAFF', { refreshInterval: 10000 })
+  // SSE for real-time updates; SWR as fallback for initial load
+  const { data: sseMovements, connected } = useSSEInbox<Movement[]>()
+  const { data: swrMovements = [], isLoading } = useSWR<Movement[]>('/api/inbox?role=BAR_STAFF', { refreshInterval: connected ? 60000 : 10000 })
+  const movements = sseMovements ?? swrMovements
   const { data: products = [] } = useSWR<Product[]>('/api/products')
   const { data: bars = [] } = useSWR<Bar[]>('/api/my-bars')
   const { isOpen, onOpen, onClose } = useDisclosure()
@@ -78,6 +83,7 @@ export default function BarStaffScreen() {
 
   return (
     <Box minH="100vh" bg="gray.900" color="white" pb="80px">
+      <AdminPreviewBanner roleLabel="Bar Staff" color="purple" />
       <Box bg="gray.800" px={4} py={4} borderBottom="1px" borderColor="gray.700">
         <HStack justify="space-between">
           <VStack align="start" spacing={0}>

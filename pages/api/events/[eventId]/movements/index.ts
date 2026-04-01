@@ -48,7 +48,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (type === 'INITIAL_ALLOCATION' && !['ADMIN', 'RUNNER'].includes(role)) {
       return res.status(403).json({ error: 'Forbidden' })
     }
-    if (type === 'RESTOCK' && !['ADMIN', 'BAR_MANAGER', 'RUNNER'].includes(role)) {
+    if (type === 'RESTOCK' && !['ADMIN', 'BAR_STAFF', 'SECTION_MANAGER', 'RUNNER'].includes(role)) {
       return res.status(403).json({ error: 'Forbidden' })
     }
     if (['TRANSFER', 'CLOSE_OUT'].includes(type) && !['ADMIN', 'RUNNER'].includes(role)) {
