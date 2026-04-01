@@ -36,46 +36,396 @@ const BASE_PRODUCTS = [
 ]
 
 async function main() {
-  console.log('Seeding database...')
+  console.log('🍺 Seeding BarStock demo data...\n')
 
-  // Admin user
   const passwordHash = await bcrypt.hash('changeme123', 10)
+
+  // ─── USERS ───────────────────────────────────────────
   const admin = await prisma.user.upsert({
     where: { email: 'admin@barstock.local' },
     update: {},
-    create: {
-      email: 'admin@barstock.local',
-      passwordHash,
-      name: 'Admin',
-      role: 'ADMIN',
-    },
+    create: { email: 'admin@barstock.local', passwordHash, name: 'Admin', role: 'ADMIN' },
   })
-  console.log(`✓ Admin user: ${admin.email} / changeme123`)
 
-  // Demo runner
+  const sectionMgr = await prisma.user.upsert({
+    where: { email: 'manager@barstock.local' },
+    update: {},
+    create: { email: 'manager@barstock.local', passwordHash, name: 'Sipho Ndlovu', role: 'SECTION_MANAGER' },
+  })
+
   const runner = await prisma.user.upsert({
     where: { email: 'runner@barstock.local' },
     update: {},
-    create: {
-      email: 'runner@barstock.local',
-      passwordHash: await bcrypt.hash('changeme123', 10),
-      name: 'Stock Runner',
-      role: 'RUNNER',
-    },
+    create: { email: 'runner@barstock.local', passwordHash, name: 'Thabo Molefe', role: 'RUNNER' },
   })
-  console.log(`✓ Runner user: ${runner.email} / changeme123`)
 
-  // Base products
+  const stockRoom = await prisma.user.upsert({
+    where: { email: 'stockroom@barstock.local' },
+    update: {},
+    create: { email: 'stockroom@barstock.local', passwordHash, name: 'Linda Govender', role: 'STOCK_ROOM_STAFF' },
+  })
+
+  const barStaff = await prisma.user.upsert({
+    where: { email: 'barstaff@barstock.local' },
+    update: {},
+    create: { email: 'barstaff@barstock.local', passwordHash, name: 'Naledi Khumalo', role: 'BAR_STAFF' },
+  })
+
+  const viewer = await prisma.user.upsert({
+    where: { email: 'viewer@barstock.local' },
+    update: {},
+    create: { email: 'viewer@barstock.local', passwordHash, name: 'Read-Only User', role: 'VIEWER' },
+  })
+
+  console.log('✓ Users:')
+  console.log('  admin@barstock.local      / changeme123  → ADMIN')
+  console.log('  manager@barstock.local    / changeme123  → SECTION_MANAGER')
+  console.log('  runner@barstock.local     / changeme123  → RUNNER')
+  console.log('  stockroom@barstock.local  / changeme123  → STOCK_ROOM_STAFF')
+  console.log('  barstaff@barstock.local   / changeme123  → BAR_STAFF')
+  console.log('  viewer@barstock.local     / changeme123  → VIEWER\n')
+
+  // ─── PRODUCTS ────────────────────────────────────────
+  const products: Record<string, any> = {}
   for (const p of BASE_PRODUCTS) {
-    await prisma.product.upsert({
+    const created = await prisma.product.upsert({
       where: { name: p.name },
       update: { totsPerBottle: (p as any).totsPerBottle ?? null },
       create: p,
     })
+    products[p.name] = created
   }
-  console.log(`✓ ${BASE_PRODUCTS.length} products seeded`)
+  console.log(`✓ ${BASE_PRODUCTS.length} products seeded\n`)
 
-  console.log('Done!')
+  // ─── EVENT ───────────────────────────────────────────
+  // Delete existing demo event if re-seeding
+  const existingEvent = await prisma.event.findFirst({ where: { name: 'DHL Stormers vs Bulls — HSBC SVNS 2026' } })
+  if (existingEvent) {
+    await prisma.event.delete({ where: { id: existingEvent.id } })
+  }
+
+  const event = await prisma.event.create({
+    data: {
+      name: 'DHL Stormers vs Bulls — HSBC SVNS 2026',
+      date: new Date('2026-04-18T17:00:00Z'),
+      venue: 'DHL Stadium, Cape Town',
+      status: 'ACTIVE',
+      notes: 'World Rugby HSBC SVNS — 65 suites across Levels 5-8. Comp + paid bars.',
+    },
+  })
+  console.log(`✓ Event: ${event.name} (status: ACTIVE)`)
+
+  // Enable all products for this event
+  for (const p of Object.values(products)) {
+    await prisma.eventProduct.create({
+      data: { eventId: event.id, productId: p.id },
+    })
+  }
+
+  // ─── CENTRAL STOCK (main store for the event) ───────
+  const centralStockData: { name: string; qty: number }[] = [
+    { name: 'Castle Lager', qty: 600 },
+    { name: 'Castle Lite', qty: 400 },
+    { name: 'Heineken', qty: 300 },
+    { name: 'Amstel', qty: 200 },
+    { name: 'Black Label', qty: 150 },
+    { name: 'Windhoek Draught', qty: 200 },
+    { name: 'Corona', qty: 100 },
+    { name: 'Savanna Dry', qty: 300 },
+    { name: 'Hunters Gold', qty: 150 },
+    { name: 'Flying Fish', qty: 100 },
+    { name: 'House Red Wine', qty: 80 },
+    { name: 'House White Wine', qty: 80 },
+    { name: 'House Rosé', qty: 60 },
+    { name: 'Klipdrift Brandy', qty: 30 },
+    { name: 'Jameson Whiskey', qty: 40 },
+    { name: 'Absolut Vodka', qty: 30 },
+    { name: 'Bacardi Rum', qty: 20 },
+    { name: 'Tanqueray Gin', qty: 30 },
+    { name: 'Coca-Cola', qty: 500 },
+    { name: 'Sprite', qty: 200 },
+    { name: 'Fanta Orange', qty: 150 },
+    { name: 'Still Water', qty: 400 },
+    { name: 'Sparkling Water', qty: 200 },
+    { name: 'Tonic Water', qty: 150 },
+    { name: 'Red Bull', qty: 200 },
+  ]
+  for (const s of centralStockData) {
+    await prisma.eventCentralStock.create({
+      data: { eventId: event.id, productId: products[s.name].id, quantity: s.qty },
+    })
+  }
+  console.log(`✓ Central stock loaded: ${centralStockData.reduce((a, b) => a + b.qty, 0)} total units\n`)
+
+  // ─── BARS / SUITES ──────────────────────────────────
+  // Stock rooms first
+  const stockRoomWest = await prisma.bar.create({
+    data: {
+      eventId: event.id, name: 'Stock Room — Level 5 West', location: 'Level 5 West', barType: 'STOCK_ROOM',
+      stockType: 'MIXED', responsibleCompany: 'BarStock Ops', managerId: stockRoom.id,
+    },
+  })
+
+  const stockRoomEast = await prisma.bar.create({
+    data: {
+      eventId: event.id, name: 'Stock Room — Level 5 East', location: 'Level 5 East', barType: 'STOCK_ROOM',
+      stockType: 'MIXED', responsibleCompany: 'BarStock Ops', managerId: stockRoom.id,
+    },
+  })
+  console.log('✓ Stock rooms: Level 5 West, Level 5 East')
+
+  // Sample suites — mix of comp and paid, different companies
+  const suites = [
+    { name: 'Suite 5100W', location: 'Level 5 – West', company: 'DHL CTS', stockType: 'COMP' },
+    { name: 'Suite 5101W', location: 'Level 5 – West', company: 'DHL CTS', stockType: 'COMP' },
+    { name: 'Suite 5102W', location: 'Level 5 – West', company: 'Investec', stockType: 'PAID' },
+    { name: 'Suite 5103W', location: 'Level 5 – West', company: 'Old Mutual', stockType: 'PAID' },
+    { name: 'Suite 5104W', location: 'Level 5 – West', company: 'Discovery', stockType: 'COMP' },
+    { name: 'Suite 5105W (DHL CTS)', location: 'Level 5 – West', company: 'DHL CTS', stockType: 'COMP' },
+    { name: 'Suite 510N', location: 'Level 5 – North', company: 'Standard Bank', stockType: 'PAID' },
+    { name: 'Suite 511N', location: 'Level 5 – North', company: 'Nedbank', stockType: 'PAID' },
+    { name: 'Suite 512N', location: 'Level 5 – North', company: 'FNB', stockType: 'PAID' },
+    { name: 'Suite 513N', location: 'Level 5 – North', company: 'Capitec', stockType: 'PAID' },
+    { name: 'Suite 541E', location: 'Level 5 – East', company: 'PwC', stockType: 'COMP' },
+    { name: 'Suite 542E', location: 'Level 5 – East', company: 'Deloitte', stockType: 'PAID' },
+    { name: 'Suite 543E', location: 'Level 5 – East', company: 'KPMG', stockType: 'PAID' },
+    { name: 'Suite 563S', location: 'Level 5 – South', company: 'Coca-Cola SA', stockType: 'COMP' },
+    { name: 'Suite 564S', location: 'Level 5 – South', company: 'SA Breweries', stockType: 'COMP' },
+  ]
+
+  const barMap: Record<string, any> = {}
+  for (const s of suites) {
+    const bar = await prisma.bar.create({
+      data: {
+        eventId: event.id, name: s.name, location: s.location,
+        responsibleCompany: s.company, stockType: s.stockType, barType: 'BAR',
+        managerId: sectionMgr.id,
+      },
+    })
+    barMap[s.name] = bar
+  }
+  console.log(`✓ ${suites.length} suites created\n`)
+
+  // ─── OPENING STOCK ALLOCATIONS ──────────────────────
+  // Give each suite a standard opening stock
+  const standardOpening: { name: string; qty: number }[] = [
+    { name: 'Castle Lager', qty: 12 },
+    { name: 'Castle Lite', qty: 12 },
+    { name: 'Heineken', qty: 6 },
+    { name: 'Savanna Dry', qty: 6 },
+    { name: 'House Red Wine', qty: 2 },
+    { name: 'House White Wine', qty: 2 },
+    { name: 'Jameson Whiskey', qty: 1 },
+    { name: 'Absolut Vodka', qty: 1 },
+    { name: 'Coca-Cola', qty: 12 },
+    { name: 'Still Water', qty: 12 },
+    { name: 'Tonic Water', qty: 6 },
+    { name: 'Red Bull', qty: 4 },
+  ]
+
+  for (const bar of Object.values(barMap)) {
+    for (const item of standardOpening) {
+      await prisma.barInventory.create({
+        data: {
+          barId: bar.id, productId: products[item.name].id,
+          openingQuantity: item.qty, currentQuantity: item.qty,
+        },
+      })
+    }
+  }
+  console.log(`✓ Opening stock allocated: ${standardOpening.length} products × ${suites.length} suites`)
+
+  // ─── OPENING CONFIRMATIONS (some done, some pending) ──
+  // Suites 5100W–5102W confirmed perfectly
+  for (const suiteName of ['Suite 5100W', 'Suite 5101W', 'Suite 5102W']) {
+    const bar = barMap[suiteName]
+    for (const item of standardOpening) {
+      await prisma.barStockConfirmation.create({
+        data: {
+          barId: bar.id, productId: products[item.name].id,
+          confirmedQuantity: item.qty, confirmedBy: 'Naledi K.', confirmedAt: new Date(),
+        },
+      })
+    }
+  }
+  console.log('  ✓ 5100W, 5101W, 5102W — confirmed ✓ (all match)')
+
+  // Suite 5103W confirmed but SHORT on Castle Lager (got 10 instead of 12)
+  const bar5103 = barMap['Suite 5103W']
+  for (const item of standardOpening) {
+    const qty = item.name === 'Castle Lager' ? 10 : item.qty  // 2 short!
+    await prisma.barStockConfirmation.create({
+      data: {
+        barId: bar5103.id, productId: products[item.name].id,
+        confirmedQuantity: qty, confirmedBy: 'John M.',
+        notes: item.name === 'Castle Lager' ? 'Only received 10, not 12' : null,
+      },
+    })
+  }
+  console.log('  ✓ 5103W — confirmed with VARIANCE (Castle Lager: 10 vs 12 allocated)')
+
+  // 5104W–5105W not yet confirmed (pending)
+  console.log('  ⏳ 5104W, 5105W — not yet confirmed')
+  console.log(`  ⏳ North/East/South suites — not yet confirmed\n`)
+
+  // ─── DEMO MOVEMENTS ─────────────────────────────────
+
+  // 1) A delivered restock request (full lifecycle complete)
+  const movement1 = await prisma.stockMovement.create({
+    data: {
+      eventId: event.id, type: 'RESTOCK', status: 'DELIVERED',
+      toBarId: barMap['Suite 5100W'].id, createdById: barStaff.id,
+      approvedById: sectionMgr.id, notes: 'Running low on beer — halftime rush',
+      approvedAt: new Date(Date.now() - 45 * 60000),
+      dispatchedAt: new Date(Date.now() - 30 * 60000),
+      deliveredAt: new Date(Date.now() - 15 * 60000),
+      lines: {
+        create: [
+          { productId: products['Castle Lager'].id, quantityRequested: 12, quantityActual: 12 },
+          { productId: products['Castle Lite'].id, quantityRequested: 6, quantityActual: 6 },
+          { productId: products['Coca-Cola'].id, quantityRequested: 12, quantityActual: 12 },
+        ],
+      },
+    },
+  })
+  console.log(`✓ Movement #${movement1.id}: DELIVERED restock to 5100W (beer + coke)`)
+
+  // 2) An approved request — stock room is prepping
+  const movement2 = await prisma.stockMovement.create({
+    data: {
+      eventId: event.id, type: 'RESTOCK', status: 'APPROVED',
+      toBarId: barMap['Suite 510N'].id, createdById: barStaff.id,
+      approvedById: sectionMgr.id, notes: 'Spirits running out, busy corporate suite',
+      approvedAt: new Date(Date.now() - 10 * 60000),
+      lines: {
+        create: [
+          { productId: products['Jameson Whiskey'].id, quantityRequested: 2 },
+          { productId: products['Absolut Vodka'].id, quantityRequested: 2 },
+          { productId: products['Tanqueray Gin'].id, quantityRequested: 1 },
+          { productId: products['Tonic Water'].id, quantityRequested: 12 },
+          { productId: products['Red Bull'].id, quantityRequested: 6 },
+        ],
+      },
+    },
+  })
+  console.log(`✓ Movement #${movement2.id}: APPROVED restock to 510N (spirits) — waiting for stock room`)
+
+  // 3) A READY request — stock room prepped, waiting for runner
+  const movement3 = await prisma.stockMovement.create({
+    data: {
+      eventId: event.id, type: 'RESTOCK', status: 'READY',
+      toBarId: barMap['Suite 541E'].id, createdById: barStaff.id,
+      approvedById: admin.id, notes: 'VIP suite — urgent please',
+      approvedAt: new Date(Date.now() - 20 * 60000),
+      lines: {
+        create: [
+          { productId: products['Heineken'].id, quantityRequested: 12 },
+          { productId: products['House Red Wine'].id, quantityRequested: 3 },
+          { productId: products['House White Wine'].id, quantityRequested: 3 },
+          { productId: products['Still Water'].id, quantityRequested: 12 },
+        ],
+      },
+    },
+  })
+  console.log(`✓ Movement #${movement3.id}: READY restock to 541E (VIP) — waiting for runner`)
+
+  // 4) An IN_TRANSIT request — runner is on the way
+  const movement4 = await prisma.stockMovement.create({
+    data: {
+      eventId: event.id, type: 'RESTOCK', status: 'IN_TRANSIT',
+      toBarId: barMap['Suite 563S'].id, createdById: barStaff.id,
+      approvedById: sectionMgr.id, notes: 'Coca-Cola comp suite needs full restock',
+      approvedAt: new Date(Date.now() - 25 * 60000),
+      dispatchedAt: new Date(Date.now() - 5 * 60000),
+      lines: {
+        create: [
+          { productId: products['Coca-Cola'].id, quantityRequested: 24 },
+          { productId: products['Sprite'].id, quantityRequested: 12 },
+          { productId: products['Still Water'].id, quantityRequested: 24 },
+          { productId: products['Red Bull'].id, quantityRequested: 12 },
+        ],
+      },
+    },
+  })
+  console.log(`✓ Movement #${movement4.id}: IN_TRANSIT restock to 563S — runner delivering now`)
+
+  // 5) Two PENDING requests — awaiting section manager approval
+  const movement5 = await prisma.stockMovement.create({
+    data: {
+      eventId: event.id, type: 'RESTOCK', status: 'PENDING',
+      toBarId: barMap['Suite 5104W'].id, createdById: barStaff.id,
+      notes: 'Need more beer for second half',
+      lines: {
+        create: [
+          { productId: products['Castle Lager'].id, quantityRequested: 12 },
+          { productId: products['Castle Lite'].id, quantityRequested: 12 },
+          { productId: products['Savanna Dry'].id, quantityRequested: 6 },
+        ],
+      },
+    },
+  })
+
+  const movement6 = await prisma.stockMovement.create({
+    data: {
+      eventId: event.id, type: 'RESTOCK', status: 'PENDING',
+      toBarId: barMap['Suite 542E'].id, createdById: barStaff.id,
+      notes: 'Wine and spirits top-up for Deloitte',
+      lines: {
+        create: [
+          { productId: products['House Red Wine'].id, quantityRequested: 2 },
+          { productId: products['House White Wine'].id, quantityRequested: 2 },
+          { productId: products['Jameson Whiskey'].id, quantityRequested: 1 },
+          { productId: products['Klipdrift Brandy'].id, quantityRequested: 1 },
+        ],
+      },
+    },
+  })
+  console.log(`✓ Movement #${movement5.id}: PENDING restock to 5104W — needs approval`)
+  console.log(`✓ Movement #${movement6.id}: PENDING restock to 542E — needs approval`)
+
+  // 6) A rejected request
+  await prisma.stockMovement.create({
+    data: {
+      eventId: event.id, type: 'RESTOCK', status: 'REJECTED',
+      toBarId: barMap['Suite 512N'].id, createdById: barStaff.id,
+      approvedById: sectionMgr.id, notes: 'Suite only has 10 guests — too much requested',
+      approvedAt: new Date(Date.now() - 35 * 60000),
+      lines: {
+        create: [
+          { productId: products['Castle Lager'].id, quantityRequested: 48 },
+          { productId: products['Heineken'].id, quantityRequested: 24 },
+        ],
+      },
+    },
+  })
+  console.log('✓ Movement: REJECTED excessive request from 512N\n')
+
+  // ─── SUMMARY ─────────────────────────────────────────
+  console.log('═══════════════════════════════════════════')
+  console.log('  🍺 Demo seed complete!')
+  console.log('═══════════════════════════════════════════')
+  console.log('')
+  console.log('Login credentials (all use password: changeme123):')
+  console.log('')
+  console.log('  ADMIN            →  admin@barstock.local')
+  console.log('  SECTION_MANAGER  →  manager@barstock.local')
+  console.log('  RUNNER           →  runner@barstock.local')
+  console.log('  STOCK_ROOM_STAFF →  stockroom@barstock.local')
+  console.log('  BAR_STAFF        →  barstaff@barstock.local')
+  console.log('  VIEWER           →  viewer@barstock.local')
+  console.log('')
+  console.log('Demo scenarios ready:')
+  console.log('  • 2 PENDING requests    → Log in as manager, approve/reject them')
+  console.log('  • 1 APPROVED request    → Log in as stockroom, mark it READY')
+  console.log('  • 1 READY request       → Log in as runner, collect & deliver it')
+  console.log('  • 1 IN_TRANSIT request  → Log in as runner, mark it delivered')
+  console.log('  • 1 DELIVERED request   → View the completed lifecycle')
+  console.log('  • 1 REJECTED request    → See how rejections look')
+  console.log('  • 3 bars confirmed ✓    → Opening stock matches')
+  console.log('  • 1 bar with variance ⚠ → Castle Lager short by 2')
+  console.log('  • 11 bars pending       → Awaiting confirmation')
+  console.log('  • QR codes page         → Print QR sheets for all suites')
+  console.log('')
 }
 
 main()
